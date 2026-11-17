@@ -4,7 +4,7 @@ What this project is, what must never break, and the facts every change needs. L
 
 ## What is this
 
-PgCreds Handler is a **Windows desktop tool** (WPF, .NET 8) for one developer's own machine. It scans folders the user chooses (e.g. `D:\Shahzaib`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
+PgCreds Handler is a **Windows desktop tool** (WPF, .NET 8) that each user runs on their own machine. It is open source (MIT). It scans folders the user chooses (e.g. `C:\Users\you\Projects`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
 
 It is a personal password manager for databases that discovers its own entries. It is not a web app, it has no server, and it never touches anyone else's data.
 
@@ -88,7 +88,12 @@ Run `dotnet build PgCredsHandler.sln` (0 errors, 0 warnings) and `dotnet test`, 
 
 ## Git
 
-The folder is not a git repository yet. When it becomes one: commit only when asked, never `--no-verify`, keep `bin/`, `obj/` and anything from `%APPDATA%` out of commits, and never commit a real `.env` or credential used for manual testing. Replace the `.claude/rules`, `.claude/skills` and `.claude/agents` junctions with real symlinks (or turn on Developer Mode) before committing: git does not store junctions as links.
+Public repository: `https://github.com/shahzaibali0/DataBaseCredsHandler`, default branch `main`. It is open source, so everything committed is public.
+
+- Commit only when asked. Never `--no-verify`.
+- Never commit user data: `connections.json`, `settings.json`, exports, a real `.env`, or any credential used for manual testing. The app keeps data in `%APPDATA%\PgCredsHandler\`, outside the repo; `.gitignore` is a safety net, not the plan.
+- No personal paths, names or machine details in code, docs or tests. Use `C:\Users\you\Projects`-style examples.
+- `.claude/rules`, `.claude/skills/*` and `.claude/agents` are committed as relative symlinks into `.agents/`. Keep them symlinks (git mode `120000`), never copies or junctions. Creating one on Windows needs Developer Mode and `git config core.symlinks true`.
 
 ## Compact instructions
 

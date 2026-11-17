@@ -25,7 +25,7 @@ Claude Code loads `rules/` itself through `.claude/rules` (files without `paths:
   agents/<name>.md     subagent definitions
 ```
 
-`.claude/rules`, `.claude/skills` and `.claude/agents` are directory junctions to `rules/`, `skills/` and `agents/` here, so Claude Code finds them in its usual places. Edit the files here, never through a copy.
+`.claude/rules`, `.claude/skills` and `.claude/agents` are relative symlinks to `rules/`, `skills/` and `agents/` here (on Windows, clone with Developer Mode on and `core.symlinks=true`), so Claude Code finds them in its usual places. Edit the files here, never through a copy.
 
 ## Rules
 

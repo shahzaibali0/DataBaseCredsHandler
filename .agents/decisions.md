@@ -38,6 +38,10 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 ## Project decisions
 
+- Open source under the MIT license, published at github.com/shahzaibali0/DataBaseCredsHandler, because it is a general developer tool and MIT lets anyone use, change and ship it with only the notice kept.
+- Each user's data stays on their own PC (`%APPDATA%\PgCredsHandler\` + Credential Manager) and is created on first run, because the repo is public and nobody's connections may ever be pushed; `.gitignore` also lists the data file names as a safety net.
+- `.claude/` entries are committed as relative symlinks into `.agents/`, not junctions or copies, because git stores symlinks and every clone then gets one copy of the instructions.
+
 _New decisions go here, one line each: the choice, then why._
 
 ## Open
@@ -46,4 +50,3 @@ _New decisions go here, one line each: the choice, then why._
 - A Claude Code `PostToolUse` hook that runs `dotnet format` on each edited `.cs` file, like the Next.js template's format-on-edit hook.
 - Logging: whether the desktop app needs `ILogger` at all, and if so where the log goes (a rolling file under `%LOCALAPPDATA%`), given nothing secret may reach it.
 - CRED_PERSIST_ENTERPRISE (roams with a domain profile) versus CRED_PERSIST_LOCAL_MACHINE (stays on this PC). See WHAT_TO_FIX item 2.
-- Git: when the folder becomes a repository, replace the `.claude/rules`, `.claude/skills` and `.claude/agents` junctions with real symlinks (needs Windows Developer Mode).

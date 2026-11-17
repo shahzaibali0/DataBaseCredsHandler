@@ -2,7 +2,7 @@ namespace PgCredsHandler.Core.Models;
 
 public sealed class AppSettings
 {
-    /// <summary>Folders the scanner walks, e.g. D:\Shahzaib.</summary>
+    /// <summary>Folders the scanner walks, e.g. C:\Users\you\Projects.</summary>
     public List<string> ScanRoots { get; set; } = new();
 
     /// <summary>Full path to dbeaver.exe. Empty = auto-detect.</summary>

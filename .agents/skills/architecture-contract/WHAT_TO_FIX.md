@@ -41,4 +41,3 @@ Written before `.agents/rules/` existed. Fix when you next edit the method; don'
 
 - `Paths.DataFolder` calls `Directory.CreateDirectory` on every property read. Harmless, but it is I/O in a getter.
 - `MergeResult.Updated` counts every re-seen entry, changed or not. Rename to `Seen` or count only real changes before showing it in the UI.
-- `README.md` says "Install the .NET 8 SDK"; the machine builds with the .NET 10 SDK and runs on the .NET 10 Desktop Runtime via `RollForward`.
