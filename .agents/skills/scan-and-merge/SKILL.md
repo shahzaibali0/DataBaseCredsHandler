@@ -1,6 +1,6 @@
 ---
 name: scan-and-merge
-description: "How PgCreds Handler scans: ProjectWalker exclusions and project roots, the rules of the .env, docker-compose and appsettings.json parsers, the recipe for adding a new IConfigParser (Django, Rails, Prisma, Spring…), and the ConnectionMerger rules (manual untouched, stale not deleted, hidden not resurrected, password change). Use when changing the scanner, any parser, ConnectionKey or ConnectionMerger, or adding a config format."
+description: "How DB Connect Hub scans: ProjectWalker exclusions and project roots, the rules of the .env, docker-compose and appsettings.json parsers, the recipe for adding a new IConfigParser (Django, Rails, Prisma, Spring…), and the ConnectionMerger rules (manual untouched, stale not deleted, hidden not resurrected, password change). Use when changing the scanner, any parser, ConnectionKey or ConnectionMerger, or adding a config format."
 ---
 
 # Scanning and merge
@@ -46,7 +46,7 @@ The scanner reads only database connection details and dev-server ports. It neve
 
 ## Adding a parser
 
-1. Create `src/PgCredsHandler.Scanner/Parsers/<Format>Parser.cs`, `public sealed class … : IConfigParser`.
+1. Create `src/DbConnectHub.Scanner/Parsers/<Format>Parser.cs`, `public sealed class … : IConfigParser`.
 2. `Kind` is the short label shown in the UI. `CanParse` matches by file name only, cheaply: it runs for every file in every folder.
 3. `Parse` returns `ParsedCredential(sourceKey, PgParts)`, with `null` for unknown parts (the scanner applies defaults). Catch format errors and return what you have; never throw for a malformed file.
 4. Reuse `PostgresUrl`, `KeyValueConnectionString`, `VariableExpander`, `EnvCredentialExtractor` instead of new parsing code.

@@ -9,7 +9,7 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 - WinUI 3 (Windows App SDK 1.8) on .NET 8 with CommunityToolkit.Mvvm, because it is a Windows-only desktop tool that needs Credential Manager, WinUI 3 gives Microsoft's own native Windows 11 look (Mica, NavigationView), and the toolkit's source generators remove MVVM boilerplate. Proton VPN's Windows app made the same move from WPF to WinUI 3. (The first UI was WPF with WPF-UI; replaced on 2026-11-17 while it was still one screen, the cheapest time to switch.)
 - Third-party UI: CommunityToolkit.WinUI controls (SettingsCard/SettingsExpander, Segmented) and WinUIEx window helpers, because they are free, MIT-licensed and the same set Proton VPN uses; commercial suites (Telerik, Syncfusion, DevExpress) were rejected because their licences don't fit an MIT project anyone can clone and build.
 - The plain WinUI `Window` with WinUIEx helpers, not WinUIEx's `WindowEx` base class, because `WindowEx`'s obsolete `Icon` member puts warnings into generated code and the build must stay at 0 warnings without suppressions.
-- Viewmodels live in a separate `PgCredsHandler.Presentation` project (plain `net8.0`, no UI framework), because WinUI projects are hard to unit-test and the privacy test must cover the code that shows data; the App holds only XAML and a small shell service.
+- Viewmodels live in a separate `DbConnectHub.Presentation` project (plain `net8.0`, no UI framework), because WinUI projects are hard to unit-test and the privacy test must cover the code that shows data; the App holds only XAML and a small shell service.
 - Unpackaged, self-contained Windows App SDK, published as one file with `EnableMsixTooling` (build tooling only), because users should download one `.exe` and double-click it: no MSIX, no Store, no runtime install.
 - The App sets `<RollForward>Major</RollForward>`, because the dev machine has only the .NET 10 Desktop Runtime and the app must still run there.
 - Core, Scanner and Integrations target plain `net8.0`, because keeping them OS-neutral lets them be built and tested anywhere and keeps Windows APIs in the two projects that need them.
@@ -25,7 +25,7 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 ### Secrets
 
-- Passwords only in Windows Credential Manager, metadata in `%APPDATA%\PgCredsHandler\connections.json`, because Credential Manager is DPAPI-protected per Windows user and the JSON can then be read or backed up without exposing anything.
+- Passwords only in Windows Credential Manager, metadata in `%APPDATA%\DbConnectHub\connections.json`, because Credential Manager is DPAPI-protected per Windows user and the JSON can then be read or backed up without exposing anything.
 - The credential key is the random `SavedConnection.Id`, not the fingerprint, because editing a manual entry's host or port must keep its password.
 - Database files show complete connection details, including the full password without masking or Windows Hello, because the owner explicitly wants every value immediately visible when the file is opened; passwords remain stored only in Windows Credential Manager at rest.
 - The pgAdmin export never contains a password, because pgAdmin prompts for it and the export file may be shared or synced.
@@ -45,12 +45,12 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 ## Project decisions
 
 - Open source under the MIT license, published at github.com/shahzaibali0/DataBaseCredsHandler, because it is a general developer tool and MIT lets anyone use, change and ship it with only the notice kept.
-- Each user's data stays on their own PC (`%APPDATA%\PgCredsHandler\` + Credential Manager) and is created on first run, because the repo is public and nobody's connections may ever be pushed; `.gitignore` also lists the data file names as a safety net.
+- Each user's data stays on their own PC (`%APPDATA%\DbConnectHub\` + Credential Manager) and is created on first run, because the repo is public and nobody's connections may ever be pushed; `.gitignore` also lists the data file names as a safety net.
 - `.claude/` entries are committed as relative symlinks into `.agents/`, not junctions or copies, because git stores symlinks and every clone then gets one copy of the instructions.
 
 - The main button scans every fixed local drive by default, with "Choose folders instead" as the alternative, because users want one click to find everything; USB, network and CD drives are left out because they are slow and may not be the user's.
 - A scan only runs when the user presses the button, never automatically on first launch, because walking a whole PC should be the user's choice.
-- Two ways to start: a self-contained single-file `PgCredsHandler.exe` on GitHub Releases (built by `release.yml` on a `v*` tag) for users, and `start.cmd` for people who clone, because neither should need to know `dotnet` commands.
+- Two ways to start: a self-contained single-file `DbConnectHub.exe` on GitHub Releases (built by `release.yml` on a `v*` tag) for users, and `start.cmd` for people who clone, because neither should need to know `dotnet` commands.
 - The privacy promise (nothing leaves the PC) is shown in the app's footer and the README and enforced by `PrivacyTests`, which fails if Core, Scanner, Storage or App reference a networking library, because an open-source tool that reads credentials must be easy to trust and easy to audit.
 - A data file that exists but can't be read is backed up and never saved over, and the app disables scanning until the user fixes it, because silently starting empty would erase manual entries and resurrect deleted ones.
 

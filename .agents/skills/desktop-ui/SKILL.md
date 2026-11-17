@@ -1,6 +1,6 @@
 ---
 name: desktop-ui
-description: "Spec and rules for the PgCreds Handler desktop UI: WinUI 3 (Windows App SDK) with CommunityToolkit.WinUI and WinUIEx, viewmodels in PgCredsHandler.Presentation, Mica window with NavigationView, project cards with app files and database files, and complete database credentials. Use for any XAML, page, viewmodel, app service or startup work."
+description: "Spec and rules for the DB Connect Hub desktop UI: WinUI 3 (Windows App SDK) with CommunityToolkit.WinUI and WinUIEx, viewmodels in DbConnectHub.Presentation, Mica window with NavigationView, project cards with app files and database files, and complete database credentials. Use for any XAML, page, viewmodel, app service or startup work."
 ---
 
 # Desktop UI
@@ -10,12 +10,12 @@ The general WinUI rules are in `.agents/rules/dotnet/winui.md`. This page is the
 ## Where things are
 
 ```
-src/PgCredsHandler.Presentation/   (net8.0, testable, no UI framework)
+src/DbConnectHub.Presentation/   (net8.0, testable, no UI framework)
   MainViewModel.cs                 state and commands for every page
   ProjectGroupViewModel.cs         one project card
   ConnectionRowViewModel.cs        one database file with complete connection details
   IDesktopShell.cs                 data folder, open folder, folder picker
-src/PgCredsHandler.App/            (WinUI 3, views only)
+src/DbConnectHub.App/            (WinUI 3, views only)
   App.xaml(.cs)                    composition root (OnLaunched)
   MainWindow.xaml(.cs)             Mica, custom title bar, NavigationView, Frame
   Pages/DatabasesPage.xaml         welcome, scanning, databases
@@ -55,4 +55,4 @@ Older notes below may describe earlier layouts.
 
 ## Done means
 
-`dotnet build` 0 warnings, `dotnet test` green (viewmodel behaviour is tested in `tests/…/Presentation/`), the app launches with title "PgCreds Handler", and the changed screens were looked at in both light and dark mode. Say which flows needed a human.
+`dotnet build` 0 warnings, `dotnet test` green (viewmodel behaviour is tested in `tests/…/Presentation/`), the app launches with title "DB Connect Hub", and the changed screens were looked at in both light and dark mode. Say which flows needed a human.

@@ -14,7 +14,7 @@ TestResults/
 
 # ---------------------------------------------------------------------------
 # User data: never commit it.
-# The app keeps its data outside the repo, in %APPDATA%\PgCredsHandler\, and
+# The app keeps its data outside the repo, in %APPDATA%\DbConnectHub\, and
 # passwords in Windows Credential Manager. These lines are a safety net in case
 # a copy, an export or test data ever lands inside the working tree.
 # ---------------------------------------------------------------------------
@@ -25,7 +25,7 @@ settings.json.*
 servers.json
 *.local.json
 *.corrupt-*
-PgCredsHandler/
+DbConnectHub/
 
 # Real environment files and local secrets (example files are fine)
 .env
@@ -42,8 +42,8 @@ PgCredsHandler/
 # Local release builds
 publish/
 
-# PgCreds Handler data and backups (the app keeps them in %APPDATA%, never here)
+# DB Connect Hub data and backups (the app keeps them in %APPDATA%, never here)
 inventory.json
 *.backup-*
 *.db
-pgcreds-*.json
+dbconnecthub-*.json

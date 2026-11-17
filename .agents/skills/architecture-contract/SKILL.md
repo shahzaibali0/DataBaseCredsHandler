@@ -1,6 +1,6 @@
 ---
 name: architecture-contract
-description: "PgCreds Handler design contract: the five projects and which may reference which, who owns each behaviour, and the design patterns in use (ports and adapters, functional core, parser strategy+registry, repository, MVVM, result objects). Use before adding a class, a project reference or a new dependency, before moving behaviour between projects, or when unsure where code belongs. WHAT_TO_FIX.md lists known debt."
+description: "DB Connect Hub design contract: the five projects and which may reference which, who owns each behaviour, and the design patterns in use (ports and adapters, functional core, parser strategy+registry, repository, MVVM, result objects). Use before adding a class, a project reference or a new dependency, before moving behaviour between projects, or when unsure where code belongs. WHAT_TO_FIX.md lists known debt."
 ---
 
 # Design contract
@@ -13,11 +13,11 @@ The settled requirements: a small local tool whose security rules are easy to se
 
 ```
                  ┌──────────────────────────┐
-                 │   PgCredsHandler.App     │  WinUI 3 window and pages, shell service,
+                 │   DbConnectHub.App     │  WinUI 3 window and pages, shell service,
                  │   (composition root)     │  wiring in App.OnLaunched
                  └──┬─────────┬─────────┬───┘
                     │   ┌─────▼───────────────────┐
-                    │   │ PgCredsHandler.Presentation │  viewmodels: state, commands,
+                    │   │ DbConnectHub.Presentation │  viewmodels: state, commands,
                     │   │ (no UI framework)       │  grouping, filtering (→ Core, Scanner)
                     │   └─────────────────────────┘
                     │         │         │
@@ -28,7 +28,7 @@ The settled requirements: a small local tool whose security rules are easy to se
         └───────────┬──┘ └────┬──────┘ └┬──────────────┘
                     │         │         │
                  ┌──▼─────────▼─────────▼───┐
-                 │    PgCredsHandler.Core   │  models, ports (interfaces), pure helpers,
+                 │    DbConnectHub.Core   │  models, ports (interfaces), pure helpers,
                  │    (no I/O, no OS APIs)  │  HostClassifier, ConnectionMerger
                  └──────────────────────────┘
 ```

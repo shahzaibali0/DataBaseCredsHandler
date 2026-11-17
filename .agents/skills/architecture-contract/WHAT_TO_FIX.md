@@ -19,10 +19,10 @@ These existed before the limits were written. They may only shrink; an edit must
 
 | Method | File | Lines |
 | --- | --- | --- |
-| `ConnectionMerger.Merge` | `src/PgCredsHandler.Core/Services/ConnectionMerger.cs` | ~89 (split: update existing / add new / mark stale) |
-| `PostgresUrl.TryParse` | `src/PgCredsHandler.Core/Util/PostgresUrl.cs` | ~70 (split: user-info, host/path, query params) |
-| `EnvFileParser.ParseText` | `src/PgCredsHandler.Scanner/Parsers/EnvFileParser.cs` | ~69 (split: quoted value reader) |
-| `ProjectScanner.Scan` | `src/PgCredsHandler.Scanner/ProjectScanner.cs` | ~61 (split: build `DiscoveredConnection`) |
+| `ConnectionMerger.Merge` | `src/DbConnectHub.Core/Services/ConnectionMerger.cs` | ~89 (split: update existing / add new / mark stale) |
+| `PostgresUrl.TryParse` | `src/DbConnectHub.Core/Util/PostgresUrl.cs` | ~70 (split: user-info, host/path, query params) |
+| `EnvFileParser.ParseText` | `src/DbConnectHub.Scanner/Parsers/EnvFileParser.cs` | ~69 (split: quoted value reader) |
+| `ProjectScanner.Scan` | `src/DbConnectHub.Scanner/ProjectScanner.cs` | ~61 (split: build `DiscoveredConnection`) |
 
 ## Against the naming and shape rules
 

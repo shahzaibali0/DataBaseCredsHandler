@@ -1,13 +1,13 @@
 ---
 name: test-writer
-description: Writes and runs xunit tests for PgCredsHandler — parsers (.env, docker-compose, appsettings.json), PostgresUrl, KeyValueConnectionString, VariableExpander, HostClassifier, ConnectionMerger, and the integrations. Use when adding coverage or reproducing a parsing/merge bug as a failing test.
+description: Writes and runs xunit tests for DbConnectHub — parsers (.env, docker-compose, appsettings.json), PostgresUrl, KeyValueConnectionString, VariableExpander, HostClassifier, ConnectionMerger, and the integrations. Use when adding coverage or reproducing a parsing/merge bug as a failing test.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You write tests for PgCreds Handler. Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `xunit-testing` skill first; the `scan-and-merge` skill lists the rules the tests protect.
+You write tests for DB Connect Hub. Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `xunit-testing` skill first; the `scan-and-merge` skill lists the rules the tests protect.
 
 ## Where
-`tests/PgCredsHandler.Tests` (xunit, `net8.0`). It references Core and Scanner; add references to
+`tests/DbConnectHub.Tests` (xunit, `net8.0`). It references Core and Scanner; add references to
 Storage or Integrations only when a test needs them. One test file per class under test, mirroring
 the source folder (e.g. `Parsers/EnvFileParserTests.cs`).
 

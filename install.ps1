@@ -1,8 +1,8 @@
-# Installs or updates PgCreds Handler for the current Windows user. No admin rights needed.
+# Installs or updates DB Connect Hub for the current Windows user. No admin rights needed.
 #
 #   irm https://raw.githubusercontent.com/shahzaibali0/DataBaseCredsHandler/main/install.ps1 | iex
 #
-# Downloads the latest release, puts it in %LOCALAPPDATA%\Programs\PgCredsHandler, adds a Start menu
+# Downloads the latest release, puts it in %LOCALAPPDATA%\Programs\DbConnectHub, adds a Start menu
 # shortcut and starts the app. Your saved projects and passwords are not touched by an update.
 # To uninstall: run it with -Uninstall (see the README).
 # ASCII only: Windows PowerShell 5.1 reads scripts without a byte-order mark as ANSI.
@@ -12,14 +12,14 @@ param([switch]$Uninstall)
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # Invoke-WebRequest is far faster without the progress bar
 
-$appName = 'PgCreds Handler'
-$downloadUrl = 'https://github.com/shahzaibali0/DataBaseCredsHandler/releases/latest/download/PgCredsHandler.exe'
-$installFolder = Join-Path $env:LOCALAPPDATA 'Programs\PgCredsHandler'
-$exePath = Join-Path $installFolder 'PgCredsHandler.exe'
+$appName = 'DB Connect Hub'
+$downloadUrl = 'https://github.com/shahzaibali0/DataBaseCredsHandler/releases/latest/download/DbConnectHub.exe'
+$installFolder = Join-Path $env:LOCALAPPDATA 'Programs\DbConnectHub'
+$exePath = Join-Path $installFolder 'DbConnectHub.exe'
 $shortcutPath = Join-Path ([Environment]::GetFolderPath('Programs')) "$appName.lnk"
 
 function Stop-RunningApp {
-    Get-Process -Name 'PgCredsHandler' -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process -Name 'DbConnectHub' -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Milliseconds 500
 }
 
@@ -29,7 +29,7 @@ if ($Uninstall) {
     Remove-Item $shortcutPath -Force -ErrorAction SilentlyContinue
     Remove-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name $appName -ErrorAction SilentlyContinue
     Write-Host "$appName is uninstalled." -ForegroundColor Green
-    Write-Host "Your saved list is still in $env:APPDATA\PgCredsHandler and the passwords in Credential Manager."
+    Write-Host "Your saved list is still in $env:APPDATA\DbConnectHub and the passwords in Credential Manager."
     Write-Host 'Delete them too if you want everything gone (see the README).'
     return
 }
@@ -37,12 +37,12 @@ if ($Uninstall) {
 Write-Host "Installing $appName..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Force $installFolder | Out-Null
 
-$download = Join-Path $env:TEMP "PgCredsHandler-$([guid]::NewGuid().ToString('N')).exe"
+$download = Join-Path $env:TEMP "DbConnectHub-$([guid]::NewGuid().ToString('N')).exe"
 try {
     Invoke-WebRequest -Uri $downloadUrl -OutFile $download -UseBasicParsing
 } catch {
     Write-Host "Couldn't download the app: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'Check your internet connection, or download PgCredsHandler.exe from the Releases page on GitHub.'
+    Write-Host 'Check your internet connection, or download DbConnectHub.exe from the Releases page on GitHub.'
     return
 }
 

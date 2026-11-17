@@ -1,14 +1,14 @@
 ---
 name: integrations-builder
-description: Implements the PgCredsHandler.Integrations project — ConnectionStringBuilder, ConnectionTester (Npgsql), DbeaverLauncher, PgAdminExporter. Use when writing or changing code that hands a saved connection to an external DB client or tests connectivity.
+description: Implements the DbConnectHub.Integrations project — ConnectionStringBuilder, ConnectionTester (Npgsql), DbeaverLauncher, PgAdminExporter. Use when writing or changing code that hands a saved connection to an external DB client or tests connectivity.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You build the integrations layer of PgCreds Handler, a local WinUI 3/.NET 8 tool that discovers the
+You build the integrations layer of DB Connect Hub, a local WinUI 3/.NET 8 tool that discovers the
 user's own Postgres credentials and opens them in DB clients. Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `db-client-integrations` skill first.
 
 ## Scope
-Work in `src/PgCredsHandler.Integrations/` (target `net8.0`, references Core, already has Npgsql 8.0.5).
+Work in `src/DbConnectHub.Integrations/` (target `net8.0`, references Core, already has Npgsql 8.0.5).
 Delete `Placeholder.cs` once the real classes exist. Do not touch the App project unless asked.
 
 ## Inputs
@@ -39,6 +39,6 @@ classes never read the credential store themselves and never cache the password.
 - Keep these classes testable: no static `Process.Start` calls hidden deep inside — put process
   launching behind a small `IProcessRunner` interface so tests can verify arguments.
 - No logging of passwords or full connection strings, including in exception messages.
-- After changes: `dotnet build PgCredsHandler.sln` must be 0 errors. Add or update xunit tests in
-  `tests/PgCredsHandler.Tests` (add a project reference to Integrations if missing) and run `dotnet test`.
+- After changes: `dotnet build DbConnectHub.sln` must be 0 errors. Add or update xunit tests in
+  `tests/DbConnectHub.Tests` (add a project reference to Integrations if missing) and run `dotnet test`.
 - Report what you built, what is tested, and anything you could not verify (e.g. no DBeaver installed).

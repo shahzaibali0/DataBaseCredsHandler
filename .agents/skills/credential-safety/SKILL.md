@@ -1,6 +1,6 @@
 ---
 name: credential-safety
-description: "The password-handling rules for PgCreds Handler: Credential Manager storage, the owner's explicit full-password database view, forbidden JSON/log/search/tooltip paths, the ICredentialStore contract, and delete. Use whenever code reads, writes, shows, copies, logs, serialises or passes a password or connection string, and when reviewing such code."
+description: "The password-handling rules for DB Connect Hub: Credential Manager storage, the owner's explicit full-password database view, forbidden JSON/log/search/tooltip paths, the ICredentialStore contract, and delete. Use whenever code reads, writes, shows, copies, logs, serialises or passes a password or connection string, and when reviewing such code."
 ---
 
 # Credential handling
@@ -11,7 +11,7 @@ The one rule: **a password is stored only in Windows Credential Manager, and is 
 
 | Place | Allowed? | Notes |
 | --- | --- | --- |
-| Windows Credential Manager, target `PgCredsHandler:{connectionId}` | Yes, the only store | Generic credential, DPAPI-protected per Windows user. `UserName` is the DB user, `Comment` is "Saved by PgCredsHandler". |
+| Windows Credential Manager, target `DbConnectHub:{connectionId}` | Yes, the only store | Generic credential, DPAPI-protected per Windows user. `UserName` is the DB user, `Comment` is "Saved by DbConnectHub". |
 | `DiscoveredConnection.Password` | Yes, transient | From parse until merge. Dropped when the scan finishes. |
 | `MergeResult.PasswordWrites` | Yes, transient | The caller writes each one, then drops the list. |
 | A local variable during display, copy, test, DBeaver launch | Yes, transient | Read from the store right before use. |

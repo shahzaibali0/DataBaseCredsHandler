@@ -1,10 +1,10 @@
-# PgCreds Handler: project overview
+# DB Connect Hub: project overview
 
 What this project is, what must never break, and the facts every change needs. Loaded every session. The index of everything in `.agents/` is [.agents/README.md](../../README.md).
 
 ## What is this
 
-PgCreds Handler is a **Windows desktop tool** (WinUI 3, .NET 8) that each user runs on their own machine. It is open source (MIT). It scans folders the user chooses (e.g. `C:\Users\you\Projects`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
+DB Connect Hub is a **Windows desktop tool** (WinUI 3, .NET 8) that each user runs on their own machine. It is open source (MIT). It scans folders the user chooses (e.g. `C:\Users\you\Projects`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
 
 It is a personal password manager for databases that discovers its own entries. It is not a web app, it has no server, and it never touches anyone else's data.
 
@@ -18,9 +18,9 @@ Two failures defeat the point of the tool. Be careful wherever they can happen:
 ## Commands
 
 ```bash
-dotnet build PgCredsHandler.sln                 # must be 0 errors, 0 warnings
-dotnet test                                     # xunit, tests/PgCredsHandler.Tests
-dotnet run --project src/PgCredsHandler.App     # Windows only; or double-click start.cmd
+dotnet build DbConnectHub.sln                 # must be 0 errors, 0 warnings
+dotnet test                                     # xunit, tests/DbConnectHub.Tests
+dotnet run --project src/DbConnectHub.App     # Windows only; or double-click start.cmd
 ```
 
 ## Stack
@@ -29,20 +29,20 @@ dotnet run --project src/PgCredsHandler.App     # Windows only; or double-click 
 - **Npgsql** 8.0.5 (Integrations), **YamlDotNet** (Scanner), **xunit** 2.9 (Tests).
 - The App targets `net8.0-windows10.0.19041.0` (needed for `UserConsentVerifier`) and sets `<RollForward>Major</RollForward>`: the dev machine has only the .NET 10 runtime. Keep it unless a .NET 8 runtime gets installed.
 - Build on Windows. Core, Scanner, Integrations and Presentation are plain `net8.0` and must stay OS-neutral; Storage and App are Windows-specific. Tests target `net8.0-windows10.0.19041.0` so they can cover Storage; they do not reference the WinUI App.
-- The App's assembly is named `PgCredsHandler`, so the program is `PgCredsHandler.exe`. Debug builds land in `src/PgCredsHandler.App/bin/Debug/net8.0-windows10.0.19041.0/win-x64/`. Releases are one self-contained file built by `.github/workflows/release.yml` on a `v*` tag; `ci.yml` builds and tests every push.
+- The App's assembly is named `DbConnectHub`, so the program is `DbConnectHub.exe`. Debug builds land in `src/DbConnectHub.App/bin/Debug/net8.0-windows10.0.19041.0/win-x64/`. Releases are one self-contained file built by `.github/workflows/release.yml` on a `v*` tag; `ci.yml` builds and tests every push.
 
 ## Solution layout
 
 ```
 src/
-  PgCredsHandler.Core          models, interfaces, pure parsing helpers, HostClassifier, ConnectionMerger
-  PgCredsHandler.Scanner       ProjectWalker + IConfigParser implementations (.env, compose, appsettings)
-  PgCredsHandler.Storage       JSON metadata repositories + WindowsCredentialStore
-  PgCredsHandler.Integrations  connection strings, Npgsql test, DBeaver launch, pgAdmin export  [to build]
-  PgCredsHandler.Presentation  viewmodels (MainViewModel, rows, project groups), IDesktopShell; no UI framework
-  PgCredsHandler.App           WinUI 3: window, pages (Databases, Privacy & data, Settings), shell service, styles
+  DbConnectHub.Core          models, interfaces, pure parsing helpers, HostClassifier, ConnectionMerger
+  DbConnectHub.Scanner       ProjectWalker + IConfigParser implementations (.env, compose, appsettings)
+  DbConnectHub.Storage       JSON metadata repositories + WindowsCredentialStore
+  DbConnectHub.Integrations  connection strings, Npgsql test, DBeaver launch, pgAdmin export  [to build]
+  DbConnectHub.Presentation  viewmodels (MainViewModel, rows, project groups), IDesktopShell; no UI framework
+  DbConnectHub.App           WinUI 3: window, pages (Databases, Privacy & data, Settings), shell service, styles
 tests/
-  PgCredsHandler.Tests         xunit: storage, merge, walker, scan workflow, viewmodels, privacy
+  DbConnectHub.Tests         xunit: storage, merge, walker, scan workflow, viewmodels, privacy
 ```
 
 Dependencies point inward: everything may reference Core; Scanner, Storage and Integrations never reference each other or App; Presentation references Core and Scanner; only App references everything. Layers, owners and the patterns in use: skill `architecture-contract`.
@@ -50,7 +50,7 @@ Dependencies point inward: everything may reference Core; Scanner, Storage and I
 ## Constraints
 
 - The app reads only database connection details, dev-server ports, and the package names in `package.json` / `.csproj` (to show the stack and key packages). It never reads, stores or shows other values from `.env` or config files (API keys, tokens, secrets).
-- **Passwords never touch JSON.** `SavedConnection` has no password field and must never get one. The password is written with `ICredentialStore.Save(connectionId, username, password)` under the target `PgCredsHandler:{connectionId}` and read back with `Read(connectionId)` at the moment it is needed.
+- **Passwords never touch JSON.** `SavedConnection` has no password field and must never get one. The password is written with `ICredentialStore.Save(connectionId, username, password)` under the target `DbConnectHub:{connectionId}` and read back with `Read(connectionId)` at the moment it is needed.
 - `InMemoryCredentialStore` exists only so non-Windows builds and tests work. Never use it as a fallback on Windows; if Credential Manager fails, the operation fails visibly.
 - `DiscoveredConnection` is the only type that carries a password in a field, and only between the scanner and `ConnectionMerger`. `MergeResult.PasswordWrites` hands those passwords to the caller, who writes them to the credential store and drops the list.
 - **Connection identity** is `ConnectionKey.Create(projectPath, host, port, database, username)` (`Fingerprint`). Do not add fields to it: a changed identity orphans stored passwords and resurrects hidden entries.
@@ -80,7 +80,7 @@ One word per concept across code, UI text and these instructions.
 
 ## Before calling it done
 
-Run `dotnet build PgCredsHandler.sln` (0 errors, 0 warnings) and `dotnet test`, and say what passed. For App changes, also launch the app and confirm it starts and the window title is "PgCreds Handler". Say plainly what you could not exercise (for example, a DBeaver that is not installed). After touching Storage, Integrations or any password flow, run the `secrets-reviewer` agent.
+Run `dotnet build DbConnectHub.sln` (0 errors, 0 warnings) and `dotnet test`, and say what passed. For App changes, also launch the app and confirm it starts and the window title is "DB Connect Hub". Say plainly what you could not exercise (for example, a DBeaver that is not installed). After touching Storage, Integrations or any password flow, run the `secrets-reviewer` agent.
 
 ## Build order (what's left)
 
@@ -98,9 +98,9 @@ Done: the scan module (first-run screen, one-button whole-PC scan with progress 
 Public repository: `https://github.com/shahzaibali0/DataBaseCredsHandler`, default branch `main`. It is open source, so everything committed is public.
 
 - Commit only when asked. Never `--no-verify`.
-- Never commit user data: `connections.json`, `settings.json`, exports, a real `.env`, or any credential used for manual testing. The app keeps data in `%APPDATA%\PgCredsHandler\`, outside the repo; `.gitignore` is a safety net, not the plan.
+- Never commit user data: `connections.json`, `settings.json`, exports, a real `.env`, or any credential used for manual testing. The app keeps data in `%APPDATA%\DbConnectHub\`, outside the repo; `.gitignore` is a safety net, not the plan.
 - No personal paths, names or machine details in code, docs or tests: never the owner's real project, database or folder names. Use made-up examples (`ShopRepo`, `shop_db`, `C:\Users\you\Projects`).
-- `.githooks/pre-commit` (enabled with `git config core.hooksPath .githooks`) enforces this: it blocks app data files, real `.env` files, and added lines containing anything from the owner's `%APPDATA%\PgCredsHandler` data. Never bypass it with `--no-verify`.
+- `.githooks/pre-commit` (enabled with `git config core.hooksPath .githooks`) enforces this: it blocks app data files, real `.env` files, and added lines containing anything from the owner's `%APPDATA%\DbConnectHub` data. Never bypass it with `--no-verify`.
 - `.claude/rules`, `.claude/skills/*` and `.claude/agents` are committed as relative symlinks into `.agents/`. Keep them symlinks (git mode `120000`), never copies or junctions. Creating one on Windows needs Developer Mode and `git config core.symlinks true`.
 
 ## Compact instructions

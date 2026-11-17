@@ -1,11 +1,11 @@
 ---
 name: xunit-testing
-description: "Testing rules for PgCreds Handler: the xunit project layout, what to cover in priority order (PostgresUrl, KeyValueConnectionString, EnvFileParser, DockerComposeParser, AppSettingsJsonParser, ConnectionMerger, HostClassifier, ProjectWalker, Integrations), temp-folder and fake-credential rules, naming. Use when writing or running tests, or reproducing a bug as a failing test."
+description: "Testing rules for DB Connect Hub: the xunit project layout, what to cover in priority order (PostgresUrl, KeyValueConnectionString, EnvFileParser, DockerComposeParser, AppSettingsJsonParser, ConnectionMerger, HostClassifier, ProjectWalker, Integrations), temp-folder and fake-credential rules, naming. Use when writing or running tests, or reproducing a bug as a failing test."
 ---
 
 # Testing
 
-`tests/PgCredsHandler.Tests`, xunit 2.9, `net8.0`. Run with `dotnet test`. It references Core and Scanner; add Storage or Integrations references only when a test needs them.
+`tests/DbConnectHub.Tests`, xunit 2.9, `net8.0`. Run with `dotnet test`. It references Core and Scanner; add Storage or Integrations references only when a test needs them.
 
 ## Layout
 
@@ -28,7 +28,7 @@ Mirror the source: `Util/PostgresUrlTests.cs`, `Parsers/EnvFileParserTests.cs`, 
 The general rules are in `.agents/rules/common/testing.md` (writing, proving, data) and `.agents/rules/dotnet/testing.md` (xunit, temp folders, fakes, naming). Read both first. For this project, in addition:
 
 - Read the implementation first. If the code looks wrong, write the test for the correct behaviour, let it fail, and report it; don't change production code in a test-only task.
-- Temp folders go under `Path.Combine(Path.GetTempPath(), "pgcreds-tests", …)`.
+- Temp folders go under `Path.Combine(Path.GetTempPath(), "dbconnecthub-tests", …)`.
 - Credential tests use `InMemoryCredentialStore`; repositories and settings stores get a temp path.
 - Pass `now` explicitly to `ConnectionMerger`.
 - Report pass/fail counts and any failure output verbatim.

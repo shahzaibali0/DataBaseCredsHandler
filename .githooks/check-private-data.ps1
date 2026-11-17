@@ -2,16 +2,16 @@
 #
 # 1. Blocks the app's data files and real environment files by name.
 # 2. Blocks added lines that contain a project name, project path, database name or remote host that
-#    PgCreds Handler found on THIS PC. The list is read at commit time from %APPDATA%\PgCredsHandler,
+#    DB Connect Hub found on THIS PC. The list is read at commit time from %APPDATA%\DbConnectHub,
 #    so the private names themselves are never stored in the repository.
 # ASCII only: Windows PowerShell 5.1 reads scripts without a byte-order mark as ANSI.
 
 $ErrorActionPreference = 'Stop'
 
 $blockedNames = @('connections.json', 'settings.json', 'inventory.json', 'servers.json')
-$blockedPatterns = @('*.backup-*', '*.corrupt-*', '*.db', 'pgcreds-*.json')
+$blockedPatterns = @('*.backup-*', '*.corrupt-*', '*.db', 'dbconnecthub-*.json')
 $genericWords = @('backend', 'frontend', 'postgres', 'localhost', 'template1', 'client', 'server', 'admin', 'web', 'api',
-                  'app', 'src', 'test', 'tests', 'main', 'database', 'default', 'public', 'shop', 'store', 'pgcredshandler')
+                  'app', 'src', 'test', 'tests', 'main', 'database', 'default', 'public', 'shop', 'store', 'dbconnecthub', 'pgcredshandler')
 
 $staged = @(git diff --cached --name-only --diff-filter=ACMR)
 $problems = New-Object System.Collections.Generic.List[string]
@@ -34,7 +34,7 @@ function Add-Words($words, $value) {
 }
 
 $privateWords = New-Object System.Collections.Generic.HashSet[string] ([StringComparer]::OrdinalIgnoreCase)
-$dataFolder = Join-Path $env:APPDATA 'PgCredsHandler'
+$dataFolder = Join-Path $env:APPDATA 'DbConnectHub'
 $connectionsFile = Join-Path $dataFolder 'connections.json'
 $inventoryFile = Join-Path $dataFolder 'inventory.json'
 
@@ -72,7 +72,7 @@ if ($privateWords.Count -gt 0) {
 if ($problems.Count -eq 0) { exit 0 }
 
 Write-Host ''
-Write-Host 'Commit blocked: it would publish your PgCreds Handler data.' -ForegroundColor Red
+Write-Host 'Commit blocked: it would publish your DB Connect Hub data.' -ForegroundColor Red
 foreach ($problem in $problems) { Write-Host "  - $problem" }
 Write-Host ''
 Write-Host 'Replace real project names, paths and databases with made-up ones (e.g. ShopRepo, shop_db), then commit again.'

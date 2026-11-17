@@ -61,7 +61,7 @@ If your tool does not load skills on its own, open the `SKILL.md` and follow it 
 
 | Agent | Use it to |
 | --- | --- |
-| [integrations-builder](agents/integrations-builder.md) | Build or change `PgCredsHandler.Integrations` |
+| [integrations-builder](agents/integrations-builder.md) | Build or change `DbConnectHub.Integrations` |
 | [test-writer](agents/test-writer.md) | Add xunit coverage, or reproduce a parsing/merge bug as a failing test |
 | [ui-builder](agents/ui-builder.md) | Build WinUI pages, viewmodels and app services |
 | [secrets-reviewer](agents/secrets-reviewer.md) | Read-only review of password handling after Storage, Integrations or App changes |

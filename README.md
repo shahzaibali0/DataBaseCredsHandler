@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="assets/logo.png" alt="PgCreds Handler logo" width="120" />
+<img src="assets/logo.png" alt="DB Connect Hub logo" width="120" />
 
-# PgCreds Handler
+# DB Connect Hub
 
 **Every project on your PC, with its ports, database connections and stack, in one window.**
 <br />Private, offline and open source. Nothing ever leaves your PC.
@@ -33,7 +33,7 @@ Run the same line again any time to **update**.
 <details>
 <summary>Other ways to install</summary>
 
-- **Download it:** get `PgCredsHandler.exe` from [Releases](https://github.com/shahzaibali0/DataBaseCredsHandler/releases) and double-click it.
+- **Download it:** get `DbConnectHub.exe` from [Releases](https://github.com/shahzaibali0/DataBaseCredsHandler/releases) and double-click it.
   Windows may show a SmartScreen warning because the file isn't code-signed yet: choose **More info → Run anyway**.
 - **From source:** `git clone https://github.com/shahzaibali0/DataBaseCredsHandler.git`, then double-click **`start.cmd`** in the folder.
   Needs the [.NET SDK](https://dotnet.microsoft.com/download) 8 or newer.
@@ -46,7 +46,7 @@ Run the same line again any time to **update**.
 
 You have many projects, each with its own database and dev servers, and the details are buried in `.env`, `docker-compose.yml` and `appsettings.json` files. Every time you open one in DBeaver or pgAdmin, you dig through files for the host, port, user and password.
 
-PgCreds Handler finds all of it for you, once, and keeps it one click away.
+DB Connect Hub finds all of it for you, once, and keeps it one click away.
 
 ## ✨ Features
 
@@ -77,16 +77,16 @@ It reads **only** database connection details, ports and package names. It never
 
 ## 🔒 Your data stays on your PC
 
-**PgCreds Handler never sends your data anywhere.** It has no server, no account, no telemetry and no update check.
+**DB Connect Hub never sends your data anywhere.** It has no server, no account, no telemetry and no update check.
 
 | What | Where |
 | --- | --- |
-| Projects and connection details (no passwords) | `%APPDATA%\PgCredsHandler\` |
-| Passwords | Windows Credential Manager (`PgCredsHandler:<id>`), never in a file |
+| Projects and connection details (no passwords) | `%APPDATA%\DbConnectHub\` |
+| Passwords | Windows Credential Manager (`DbConnectHub:<id>`), never in a file |
 
 Check it yourself:
 
-- ✅ An automated test ([`PrivacyTests.cs`](tests/PgCredsHandler.Tests/PrivacyTests.cs)) fails the build if the code that scans, stores or shows your data ever uses a networking library.
+- ✅ An automated test ([`PrivacyTests.cs`](tests/DbConnectHub.Tests/PrivacyTests.cs)) fails the build if the code that scans, stores or shows your data ever uses a networking library.
 - ✅ The only connections the app makes are to **your own PC** (`localhost`) to see whether a server is running, and to a database **you** open in a DB tool. A remote server is never contacted for status.
 - ✅ It's open source: search the code for `HttpClient` or `Socket`.
 
@@ -99,8 +99,8 @@ Check it yourself:
 
 That removes the app, its Start menu shortcut and its startup entry. To also delete your saved list:
 
-1. Delete the folder `%APPDATA%\PgCredsHandler`.
-2. Open **Credential Manager** → **Windows Credentials** and remove the entries starting with `PgCredsHandler:`.
+1. Delete the folder `%APPDATA%\DbConnectHub`.
+2. Open **Credential Manager** → **Windows Credentials** and remove the entries starting with `DbConnectHub:`.
 
 </details>
 
@@ -132,21 +132,21 @@ dotnet test                           # 100+ tests
 
 ```
 src/
-  PgCredsHandler.Core          models, parsing helpers, merge rules (no file or network access)
-  PgCredsHandler.Scanner       finds config files and reads connections, apps, ports and stack
-  PgCredsHandler.Storage       the JSON data files and Windows Credential Manager
-  PgCredsHandler.Integrations  DBeaver, pgAdmin, DbVisualizer and the localhost status check
-  PgCredsHandler.Presentation  what each screen shows and does (viewmodels), tested without a window
-  PgCredsHandler.App           the WinUI 3 window and pages
+  DbConnectHub.Core          models, parsing helpers, merge rules (no file or network access)
+  DbConnectHub.Scanner       finds config files and reads connections, apps, ports and stack
+  DbConnectHub.Storage       the JSON data files and Windows Credential Manager
+  DbConnectHub.Integrations  DBeaver, pgAdmin, DbVisualizer and the localhost status check
+  DbConnectHub.Presentation  what each screen shows and does (viewmodels), tested without a window
+  DbConnectHub.App           the WinUI 3 window and pages
 tests/
-  PgCredsHandler.Tests         xunit tests
+  DbConnectHub.Tests         xunit tests
 ```
 
 - **Built with** WinUI 3 (Windows App SDK) on .NET 8, CommunityToolkit.Mvvm, CommunityToolkit.WinUI and WinUIEx. Ships as one self-contained `.exe`.
-- **Never commit real data:** no credentials, no `.env` files, no `connections.json`. The privacy check blocks the app's data files, real `.env` files, and any line containing a project name, path, database or host that PgCreds Handler found on your PC.
-- **Try it with demo data:** set `PGCREDS_DATA_DIR` to another folder before starting the app, so your real list isn't touched.
+- **Never commit real data:** no credentials, no `.env` files, no `connections.json`. The privacy check blocks the app's data files, real `.env` files, and any line containing a project name, path, database or host that DB Connect Hub found on your PC.
+- **Try it with demo data:** set `DBCONNECTHUB_DATA_DIR` to another folder before starting the app, so your real list isn't touched.
 - **Design rules, coding style and decisions** are in [.agents/](.agents/README.md). They're written for AI coding agents and work just as well for people.
-- **Publishing a release** (maintainers): push a tag such as `v0.1.0`. GitHub Actions builds `PgCredsHandler.exe` and attaches it to the release.
+- **Publishing a release** (maintainers): push a tag such as `v0.1.0`. GitHub Actions builds `DbConnectHub.exe` and attaches it to the release.
 
 </details>
 

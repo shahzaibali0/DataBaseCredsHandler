@@ -1,10 +1,10 @@
 ---
 name: secrets-reviewer
-description: Read-only reviewer that checks PgCredsHandler changes against the project's password-handling rules — Credential Manager at rest, full password only in the Database file, no passwords in JSON/logs/exceptions/tooltips/search, and safe process launching. Use after changes to Storage, Integrations, or password display.
+description: Read-only reviewer that checks DbConnectHub changes against the project's password-handling rules — Credential Manager at rest, full password only in the Database file, no passwords in JSON/logs/exceptions/tooltips/search, and safe process launching. Use after changes to Storage, Integrations, or password display.
 tools: Read, Grep, Glob, Bash
 ---
 
-You review PgCreds Handler code for credential-handling mistakes. You do not edit files; you report.
+You review DB Connect Hub code for credential-handling mistakes. You do not edit files; you report.
 Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `credential-safety` skill first — they are the spec.
 
 ## Check
@@ -12,7 +12,7 @@ Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `credentia
    `connections.json`, `settings.json`, pgAdmin `servers.json`, and any temp files contain none.
    Grep for `Password` in serialised types and writers.
 2. **Credential Manager is the only store.** Writes go through `ICredentialStore` with key
-   `PgCredsHandler:{connectionId}`. `InMemoryCredentialStore` is used only off-Windows/tests, never as a silent fallback on Windows.
+   `DbConnectHub:{connectionId}`. `InMemoryCredentialStore` is used only off-Windows/tests, never as a silent fallback on Windows.
 3. **No leakage** in `Debug.WriteLine`, `Console`, exception messages, `ToString()` overrides,
    connection strings shown in UI/tooltips, or crash dialogs.
 4. **Process launching** (DBeaver) uses `ArgumentList`, not a concatenated string; values with

@@ -1,5 +1,5 @@
 @echo off
-rem Builds and starts PgCreds Handler. Double-click this file after cloning the repository.
+rem Builds and starts DB Connect Hub. Double-click this file after cloning the repository.
 setlocal
 cd /d "%~dp0"
 
@@ -11,8 +11,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo Building PgCreds Handler...
-dotnet build src\PgCredsHandler.App -c Release --nologo -v quiet
+echo Building DB Connect Hub...
+dotnet build src\DbConnectHub.App -c Release --nologo -v quiet
 if errorlevel 1 (
     echo.
     echo The build failed. The messages above say why.
@@ -20,4 +20,4 @@ if errorlevel 1 (
     exit /b 1
 )
 
-start "" "src\PgCredsHandler.App\bin\Release\net8.0-windows10.0.19041.0\win-x64\PgCredsHandler.exe"
+start "" "src\DbConnectHub.App\bin\Release\net8.0-windows10.0.19041.0\win-x64\DbConnectHub.exe"

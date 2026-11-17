@@ -1,0 +1,223 @@
+<UserControl
+    x:Class="DbConnectHub.App.Ui.ProjectDetailPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:pres="using:DbConnectHub.Presentation"
+    xmlns:ui="using:DbConnectHub.App.Ui">
+
+    <!-- Everything about one project: ports, database connections, stack and key packages. -->
+    <Grid RowSpacing="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" ColumnSpacing="14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Border Width="48" Height="48" CornerRadius="10" Background="{StaticResource HeroBrush}">
+                <TextBlock Text="{x:Bind Project.Initials, Mode=OneWay}" FontSize="18" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource OnHeroBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Text="{x:Bind Project.Name, Mode=OneWay}" Style="{StaticResource TitleTextBlockStyle}" />
+                <TextBlock Text="{x:Bind Project.Path, Mode=OneWay}" Style="{StaticResource FieldLabelStyle}" IsTextSelectionEnabled="True" />
+            </StackPanel>
+            <Button Grid.Column="2" VerticalAlignment="Top" Click="OnCloseClick" AutomationProperties.Name="Close project"
+                    ToolTipService.ToolTip="Close (Esc)" Style="{StaticResource IconButtonStyle}">
+                <FontIcon Glyph="&#xE711;" FontSize="14" />
+            </Button>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" MinWidth="260" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" Spacing="16">
+                <!-- Ports -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Ports" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="No local servers detected in this project." Style="{StaticResource SecondaryTextStyle}"
+                                   Visibility="{x:Bind ui:Badges.IsFalse(Project.HasServers), Mode=OneWay}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Project.Servers, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="10" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="pres:AppGroupViewModel">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="{x:Bind ui:Badges.RoleGlyph(Role)}" FontSize="18" VerticalAlignment="Center"
+                                                  Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock>
+                                                <Run Text="{x:Bind RoleLabel}" FontWeight="SemiBold" /><Run Text="  ·  " /><Run Text="{x:Bind AppName}" />
+                                            </TextBlock>
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <TextBlock Text="{x:Bind LocalUrlDisplay}" Style="{StaticResource FieldValueStyle}" />
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{x:Bind ui:Badges.StatusBrush(RunState), Mode=OneWay}" />
+                                                <TextBlock Text="{x:Bind ui:Badges.StatusText(RunState), Mode=OneWay}" Style="{StaticResource FieldLabelStyle}" />
+                                            </StackPanel>
+                                            <TextBlock Style="{StaticResource FieldLabelStyle}">
+                                                <Run Text="{x:Bind Framework}" /><Run Text="  ·  " /><Run Text="{x:Bind LocalUrlSource}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="2" VerticalAlignment="Center" Tag="{x:Bind LocalUrl}" Click="OnOpenUrlClick"
+                                                AutomationProperties.Name="Open in browser">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <FontIcon Glyph="&#xE8A7;" FontSize="13" />
+                                                <TextBlock Text="Open" />
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
+                <!-- Database connections -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Database connections" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="No database found in this project." Style="{StaticResource SecondaryTextStyle}"
+                                   Visibility="{x:Bind ui:Badges.IsFalse(Project.HasDatabases), Mode=OneWay}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Project.Databases, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="14" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="pres:ConnectionRowViewModel">
+                                    <Border Padding="16" CornerRadius="8" BorderThickness="1"
+                                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                        <StackPanel Spacing="12">
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <FontIcon Glyph="&#xE8F1;" FontSize="16" />
+                                                <TextBlock Text="{x:Bind Database}" Style="{StaticResource BodyStrongTextBlockStyle}" VerticalAlignment="Center" />
+                                                <Border Style="{StaticResource PillStyle}" Background="{x:Bind ui:Badges.HostBrush(HostKind)}">
+                                                    <TextBlock Text="{x:Bind HostKindLabel}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource OnBadgeBrush}" />
+                                                </Border>
+                                                <Border Style="{StaticResource TagStyle}" Visibility="{x:Bind IsStale}">
+                                                    <TextBlock Text="No longer found" FontSize="12" />
+                                                </Border>
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{x:Bind ui:Badges.StatusBrush(RunState), Mode=OneWay}" />
+                                                <TextBlock Text="{x:Bind ui:Badges.StatusText(RunState), Mode=OneWay}" Style="{StaticResource FieldLabelStyle}" />
+                                            </StackPanel>
+
+                                            <Grid ColumnSpacing="16" RowSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="90" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock Grid.Row="0" Text="Host" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind Host}" Style="{StaticResource FieldValueStyle}" />
+                                                <TextBlock Grid.Row="1" Text="Port" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind PortText}" Style="{StaticResource FieldValueStyle}" />
+                                                <TextBlock Grid.Row="2" Text="Database" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind Database}" Style="{StaticResource FieldValueStyle}" />
+                                                <TextBlock Grid.Row="3" Text="User" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind Username}" Style="{StaticResource FieldValueStyle}" />
+                                                <TextBlock Grid.Row="4" Text="Password" Style="{StaticResource FieldLabelStyle}" />
+                                                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                                    <TextBlock Text="{x:Bind DisplayPassword, Mode=OneWay}" Style="{StaticResource FieldValueStyle}" MaxWidth="320" />
+                                                    <Button Style="{StaticResource IconButtonStyle}" Command="{x:Bind ToggleRevealCommand}"
+                                                            ToolTipService.ToolTip="{x:Bind RevealLabel, Mode=OneWay}"
+                                                            AutomationProperties.Name="{x:Bind RevealLabel, Mode=OneWay}">
+                                                        <FontIcon Glyph="{x:Bind ui:Badges.EyeGlyph(IsRevealed), Mode=OneWay}" FontSize="14" />
+                                                    </Button>
+                                                    <Button Style="{StaticResource IconButtonStyle}" Command="{x:Bind CopyPasswordCommand}"
+                                                            ToolTipService.ToolTip="Copy password" AutomationProperties.Name="Copy password">
+                                                        <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                                    </Button>
+                                                </StackPanel>
+                                                <TextBlock Grid.Row="5" Text="Found in" Style="{StaticResource FieldLabelStyle}" />
+                                                <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind Source}" Style="{StaticResource FieldLabelStyle}"
+                                                           ToolTipService.ToolTip="{x:Bind SourceFile}" />
+                                            </Grid>
+
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Button Style="{StaticResource AccentButtonStyle}" Command="{x:Bind OpenInDbeaverCommand}" Content="Open in DBeaver" />
+                                                <Button Command="{x:Bind OpenInPgAdminCommand}" Content="Open in pgAdmin" />
+                                                <Button Command="{x:Bind OpenInDbVisualizerCommand}" Content="Open in DbVisualizer" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                                <HyperlinkButton Command="{x:Bind CopyConnectionUrlCommand}" Padding="0"
+                                                                 ToolTipService.ToolTip="postgresql://… without the password">
+                                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                                        <FontIcon Glyph="&#xE71B;" FontSize="13" />
+                                                        <TextBlock Text="Copy connection URL" />
+                                                    </StackPanel>
+                                                </HyperlinkButton>
+                                                <TextBlock Text="Greyed-out buttons are tools that aren't installed on this PC."
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="16">
+                <!-- Stack -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Stack" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="Not detected." Style="{StaticResource SecondaryTextStyle}"
+                                   Visibility="{x:Bind ui:Badges.IsFalse(Project.HasStack), Mode=OneWay}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Project.Stack, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="6" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <Border Style="{StaticResource TagStyle}" HorizontalAlignment="Left">
+                                        <TextBlock Text="{x:Bind}" />
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+
+                <!-- Key third-party packages -->
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel>
+                        <TextBlock Text="Key packages" Style="{StaticResource SectionTitleStyle}" />
+                        <TextBlock Text="No notable packages found." Style="{StaticResource SecondaryTextStyle}"
+                                   Visibility="{x:Bind ui:Badges.IsFalse(Project.HasPackages), Mode=OneWay}" />
+                        <ItemsRepeater ItemsSource="{x:Bind Project.Packages, Mode=OneWay}">
+                            <ItemsRepeater.Layout>
+                                <StackLayout Spacing="10" />
+                            </ItemsRepeater.Layout>
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="pres:PackageGroupViewModel">
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Bind Category}" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBlock Text="{x:Bind Names}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

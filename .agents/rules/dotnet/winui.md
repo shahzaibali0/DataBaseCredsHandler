@@ -52,5 +52,5 @@ How the common rules apply to a WinUI 3 (Windows App SDK) desktop app with MVVM.
 ## Packaging and checks
 
 - Unpackaged (`WindowsPackageType=None`), self-contained Windows App SDK, `win-x64`. Release builds are one file: `dotnet publish -p:PublishSingleFile=true` (needs `EnableMsixTooling`, build tooling only).
-- Build output is `bin\<Config>\net8.0-windows10.0.19041.0\win-x64\PgCredsHandler.exe`.
-- The app builds with 0 warnings and launches: start it, confirm the window title "PgCreds Handler", close it. Say which flows needed a human (for example, a folder picker).
+- Build output is `bin\<Config>\net8.0-windows10.0.19041.0\win-x64\DbConnectHub.exe`.
+- The app builds with 0 warnings and launches: start it, confirm the window title "DB Connect Hub", close it. Say which flows needed a human (for example, a folder picker).

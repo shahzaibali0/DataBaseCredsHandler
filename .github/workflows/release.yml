@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag like v0.1.0 to build PgCredsHandler.exe and attach it to a GitHub Release.
+# Push a tag like v0.1.0 to build DbConnectHub.exe and attach it to a GitHub Release.
 on:
   push:
     tags: ["v*"]
@@ -19,16 +19,16 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Test
-        run: dotnet test PgCredsHandler.sln -c Release
+        run: dotnet test DbConnectHub.sln -c Release
 
       # One self-contained file: users download it and double-click, no .NET install needed.
       - name: Publish
         run: >
-          dotnet publish src/PgCredsHandler.App -c Release -r win-x64 --self-contained true
+          dotnet publish src/DbConnectHub.App -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
           -p:EnableCompressionInSingleFile=true -o publish
 
       - uses: softprops/action-gh-release@v2
         with:
-          files: publish/PgCredsHandler.exe
+          files: publish/DbConnectHub.exe
           generate_release_notes: true
