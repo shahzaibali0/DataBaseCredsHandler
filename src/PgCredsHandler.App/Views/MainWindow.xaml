@@ -1,0 +1,15 @@
+<Window x:Class="PgCredsHandler.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PgCreds Handler" Height="650" Width="1000"
+        WindowStartupLocation="CenterScreen">
+    <!-- Placeholder shell. Build out the connection list, search box, reveal/copy
+         buttons, Windows Hello prompt and the DBeaver/pgAdmin actions here. -->
+    <Grid Margin="24">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <TextBlock Text="PgCreds Handler" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="Scaffold ready. Backend (scanner + storage) is implemented in the other projects."
+                       Opacity="0.7" Margin="0,8,0,0" HorizontalAlignment="Center" TextAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</Window>

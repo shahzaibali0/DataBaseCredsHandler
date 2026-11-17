@@ -1,0 +1,3 @@
+interface:
+  display_name: "xunit testing"
+  short_description: "What and how to test"

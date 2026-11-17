@@ -1,0 +1,3 @@
+interface:
+  display_name: "DB client integrations"
+  short_description: "Connection strings, test, DBeaver, pgAdmin"

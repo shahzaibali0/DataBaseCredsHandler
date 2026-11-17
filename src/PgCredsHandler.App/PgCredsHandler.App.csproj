@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>PgCredsHandler.App</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Only the .NET 10 Desktop Runtime is installed locally; let the net8 app roll forward onto it. -->
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PgCredsHandler.Core\PgCredsHandler.Core.csproj" />
+    <ProjectReference Include="..\PgCredsHandler.Scanner\PgCredsHandler.Scanner.csproj" />
+    <ProjectReference Include="..\PgCredsHandler.Storage\PgCredsHandler.Storage.csproj" />
+    <ProjectReference Include="..\PgCredsHandler.Integrations\PgCredsHandler.Integrations.csproj" />
+  </ItemGroup>
+
+</Project>

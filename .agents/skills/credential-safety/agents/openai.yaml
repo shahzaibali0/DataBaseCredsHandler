@@ -1,0 +1,3 @@
+interface:
+  display_name: "Credential safety"
+  short_description: "Where a password may live"

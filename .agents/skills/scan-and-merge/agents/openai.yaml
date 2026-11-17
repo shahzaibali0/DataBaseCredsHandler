@@ -1,0 +1,3 @@
+interface:
+  display_name: "Scan and merge"
+  short_description: "Scanner, parsers and merge rules"

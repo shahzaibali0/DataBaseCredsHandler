@@ -1,0 +1,3 @@
+interface:
+  display_name: "WPF MVVM UI"
+  short_description: "Screens, viewmodels and app services"

@@ -1,0 +1,40 @@
+# Build output
+bin/
+obj/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+TestResults/
+*.log
+
+# IDE
+.vs/
+*.user
+*.suo
+
+# ---------------------------------------------------------------------------
+# User data: never commit it.
+# The app keeps its data outside the repo, in %APPDATA%\PgCredsHandler\, and
+# passwords in Windows Credential Manager. These lines are a safety net in case
+# a copy, an export or test data ever lands inside the working tree.
+# ---------------------------------------------------------------------------
+connections.json
+connections.json.*
+settings.json
+settings.json.*
+servers.json
+*.local.json
+*.corrupt-*
+PgCredsHandler/
+
+# Real environment files and local secrets (example files are fine)
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pfx
+*.p12
+
+# Claude Code: shared settings are committed, per-machine ones are not
+!.claude/settings.json
+.claude/settings.local.json

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Architecture contract"
+  short_description: "Layers, owners and design patterns"
