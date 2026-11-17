@@ -2,7 +2,10 @@ namespace PgCredsHandler.Core.Models;
 
 public sealed class AppSettings
 {
-    /// <summary>Folders the scanner walks, e.g. C:\Users\you\Projects.</summary>
+    /// <summary>
+    /// Folders the scanner walks, e.g. C:\Users\you\Projects. Empty (the default) means every fixed
+    /// local drive; USB, network and CD drives are never scanned unless chosen here.
+    /// </summary>
     public List<string> ScanRoots { get; set; } = new();
 
     /// <summary>Full path to dbeaver.exe. Empty = auto-detect.</summary>
@@ -35,6 +38,6 @@ public sealed class AppSettings
         "venv", ".venv", "__pycache__", ".tox", ".mypy_cache", ".pytest_cache", "site-packages",
         "vendor", "packages", ".nuget", ".gradle", ".idea", ".vs", ".vscode",
         "$RECYCLE.BIN", "System Volume Information", "Windows", "Program Files", "Program Files (x86)",
-        "ProgramData", "AppData"
+        "ProgramData", "AppData", "Windows.old", "Recovery", "PerfLogs", "Config.Msi", "OneDriveTemp"
     };
 }

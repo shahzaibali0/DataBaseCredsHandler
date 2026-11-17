@@ -1,0 +1,3 @@
+interface:
+  display_name: "Desktop UI"
+  short_description: "WinUI 3 screens, viewmodels and app services"

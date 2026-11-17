@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Screen state and commands, with no UI framework: the WinUI app binds to these,
+         and the tests drive them without a window. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>PgCredsHandler.Presentation</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PgCredsHandler.Core\PgCredsHandler.Core.csproj" />
+    <ProjectReference Include="..\PgCredsHandler.Scanner\PgCredsHandler.Scanner.csproj" />
+  </ItemGroup>
+
+</Project>

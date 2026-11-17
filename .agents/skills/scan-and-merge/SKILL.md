@@ -7,7 +7,8 @@ description: "How PgCreds Handler scans: ProjectWalker exclusions and project ro
 
 ## Pipeline
 
-1. **Walk** (`ProjectWalker.Walk`): depth-first from each scan root, depth cap 12. Skips folders named in `ExcludedFolderNames` (case-insensitive), every dot-folder except `.config`, and reparse points (junctions, symlinks). Unreadable folders are skipped. Yields only files some parser `CanParse`.
+0. **Roots** (`ScanWorkflow`): `AppSettings.ScanRoots` if the user chose folders, else every fixed, ready drive (`LocalDrives`).
+1. **Walk** (`ProjectWalker.Walk`): depth-first from each scan root, depth cap 12. Skips folders named in `ExcludedFolderNames` (case-insensitive), every dot-folder except `.config`, every `$`-folder, and reparse points (junctions, symlinks). Unreadable folders are skipped. Yields only files some parser `CanParse`. The project root is looked up only for folders that hold a config file, which keeps a whole-drive scan fast.
 2. **Project root** (`FindProjectRoot`): the nearest ancestor, not above the scan root, containing a marker: `.git`, `package.json`, `pyproject.toml`, `requirements.txt`, `go.mod`, `composer.json`, `Cargo.toml`, `pom.xml`, `build.gradle`, `Gemfile`, `manage.py`, `artisan`. No marker: the file's own folder. The project name is that folder's name.
 3. **Parse**: the first parser whose `CanParse(fileName)` matches. A parser that throws is skipped for that file.
 4. **Defaults** (`ProjectScanner`): host `localhost`, port `5432`, user `postgres`, database = user (or `postgres`). A hit with no host, user, database or password is dropped.

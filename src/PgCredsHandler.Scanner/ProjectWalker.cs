@@ -49,13 +49,16 @@ public sealed class ProjectWalker
             catch (UnauthorizedAccessException) { continue; }
             catch (IOException) { continue; }
 
-            var projectRoot = FindProjectRoot(dir, root);
+            // Looking for the project root costs several file checks per ancestor, so only do it for
+            // folders that actually hold a config file. A whole-drive scan visits ~100k folders.
+            string? projectRoot = null;
 
             foreach (var file in files)
             {
                 var name = Path.GetFileName(file);
-                if (isConfigFile(name))
-                    yield return new FoundFile(file, name, projectRoot);
+                if (!isConfigFile(name)) continue;
+                projectRoot ??= FindProjectRoot(dir, root);
+                yield return new FoundFile(file, name, projectRoot);
             }
 
             if (depth >= _maxDepth) continue;
@@ -65,6 +68,7 @@ public sealed class ProjectWalker
                 var name = Path.GetFileName(sub);
                 if (_excluded.Contains(name)) continue;
                 if (name.StartsWith('.') && name is not ".config") continue; // skip dotfolders except a couple
+                if (name.StartsWith('$')) continue; // Windows system folders at drive roots ($Recycle.Bin, $WinREAgent…)
                 try
                 {
                     if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) != 0) continue; // don't follow junctions/symlinks

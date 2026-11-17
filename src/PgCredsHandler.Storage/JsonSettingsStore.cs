@@ -1,36 +1,21 @@
-using System.Text.Json;
 using PgCredsHandler.Core.Abstractions;
 using PgCredsHandler.Core.Models;
 
 namespace PgCredsHandler.Storage;
 
+/// <summary>
+/// Stores <see cref="AppSettings"/> as JSON in <c>%APPDATA%\PgCredsHandler\settings.json</c>.
+/// A file that exists but can't be read throws <see cref="DataFileUnreadableException"/> rather than
+/// resetting the settings, because a reset would forget the hidden fingerprints and resurrect deleted entries.
+/// </summary>
 public sealed class JsonSettingsStore : ISettingsStore
 {
-    private readonly string _path;
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    private readonly JsonDataFile<AppSettings> _file;
 
-    public JsonSettingsStore(string? path = null) => _path = path ?? Paths.SettingsFile;
+    public JsonSettingsStore(string? path = null) =>
+        _file = new JsonDataFile<AppSettings>(path ?? Paths.SettingsFile);
 
-    public AppSettings Load()
-    {
-        try
-        {
-            if (!File.Exists(_path)) return new AppSettings();
-            return JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(_path), Options) ?? new AppSettings();
-        }
-        catch { return new AppSettings(); }
-    }
+    public AppSettings Load() => _file.Read() ?? new AppSettings();
 
-    public void Save(AppSettings settings)
-    {
-        var json = JsonSerializer.Serialize(settings, Options);
-        var tmp = _path + ".tmp";
-        File.WriteAllText(tmp, json);
-        if (File.Exists(_path)) File.Replace(tmp, _path, null);
-        else File.Move(tmp, _path);
-    }
+    public void Save(AppSettings settings) => _file.Write(settings);
 }

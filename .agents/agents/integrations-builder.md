@@ -4,7 +4,7 @@ description: Implements the PgCredsHandler.Integrations project — ConnectionSt
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You build the integrations layer of PgCreds Handler, a local WPF/.NET 8 tool that discovers the
+You build the integrations layer of PgCreds Handler, a local WinUI 3/.NET 8 tool that discovers the
 user's own Postgres credentials and opens them in DB clients. Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `db-client-integrations` skill first.
 
 ## Scope

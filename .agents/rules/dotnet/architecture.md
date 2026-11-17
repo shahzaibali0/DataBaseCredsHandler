@@ -19,7 +19,7 @@ How `common/architecture.md` maps onto a .NET solution. This project's concrete 
 | Services | Static pure classes in Core when they need no I/O; otherwise a class in the project that owns the I/O, behind an interface from Core. |
 | Data access | A `*.Storage` / `*.Data` project: repositories, file stores, `DbContext`. One per kind of storage. |
 | Outside systems | One project or folder per outside system (`*.Integrations`), each behind an interface. |
-| Entry points | WPF viewmodel commands, ASP.NET controllers or minimal-API endpoints, hosted services, a console `Main`. |
+| Entry points | WinUI / WPF viewmodel commands, ASP.NET controllers or minimal-API endpoints, hosted services, a console `Main`. |
 | Composition root | `App.xaml.cs` `OnStartup`, or `Program.cs`. The only place that creates concrete adapters. |
 | Configuration | One settings type loaded and validated at startup (`IOptions<T>` with `ValidateOnStart`, or a settings store). |
 | Tests | A `tests/*.Tests` project per area, mirroring the source folders. |

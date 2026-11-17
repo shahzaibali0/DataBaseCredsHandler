@@ -4,17 +4,13 @@ Known bugs, risks and departures from the [design contract](SKILL.md), found whi
 
 ## Bugs and risks
 
-### 1. A corrupted `connections.json` can silently wipe the saved list (high)
-`JsonConnectionRepository.GetAll` (`src/PgCredsHandler.Storage/JsonConnectionRepository.cs`) catches every exception and returns an empty list. If the file is ever unreadable (bad JSON, a hand edit, a locked file), the app sees zero connections. The next scan then calls `SaveAll` with only what it found, so every **manual entry is permanently lost** and their passwords are orphaned in Credential Manager. `JsonSettingsStore.Load` has the same shape: a bad `settings.json` resets scan roots and `HiddenFingerprints`, so deleted connections come back.
-**Fix:** distinguish "file missing" (empty is correct) from "file unreadable" (back the file up as `connections.json.corrupt-<timestamp>`, tell the user, and refuse to save over it until they choose).
-
-### 2. Credential persistence comment is wrong; `ENTERPRISE` roams (low)
+### 1. Credential persistence comment is wrong; `ENTERPRISE` roams (low)
 `WindowsCredentialStore` says `CRED_PERSIST_LOCAL_MACHINE` "would be shared" and uses `CRED_PERSIST_ENTERPRISE`. Per the Win32 docs both are visible only to the same Windows user; `LOCAL_MACHINE` stays on this computer, `ENTERPRISE` also roams to other computers with a roaming domain profile. For a single-machine tool `LOCAL_MACHINE` matches the intent. Changing it requires re-saving existing credentials, so decide deliberately and fix the comment either way.
 
-### 3. Docker services without a published port get port 5432 (low)
+### 2. Docker services without a published port get port 5432 (low)
 `DockerComposeParser.ReadHostPort` returns `null` when no port maps to 5432, and the parser then uses `localhost:5432`. That container is not reachable from the host at all; 5432 may be a different local Postgres. Mark such connections (e.g. `SourceKey` suffix or a flag) so the UI can say "not published to the host".
 
-### 4. Two connection-string builders (planned duplication)
+### 3. Two connection-string builders (planned duplication)
 `PostgresUrl.ToUrl` / `ToJdbc` in Core build strings; `ConnectionStringBuilder` in Integrations is specified to do the same. When it is built, have one owner and delete or delegate the other. Note `ToJdbc` does not encode the database name while `ToUrl` does.
 
 ## Over the size limits

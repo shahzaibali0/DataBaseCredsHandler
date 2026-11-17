@@ -1,10 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Windows target so the tests can cover Storage (Windows Credential Manager, JSON data files).
+         Core, Scanner and Presentation themselves stay plain net8.0. The WinUI App holds only views. -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <IsPackable>false</IsPackable>
+    <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,8 +17,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\PgCredsHandler.Core\PgCredsHandler.Core.csproj" />
     <ProjectReference Include="..\..\src\PgCredsHandler.Scanner\PgCredsHandler.Scanner.csproj" />
+    <ProjectReference Include="..\..\src\PgCredsHandler.Storage\PgCredsHandler.Storage.csproj" />
+    <ProjectReference Include="..\..\src\PgCredsHandler.Presentation\PgCredsHandler.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

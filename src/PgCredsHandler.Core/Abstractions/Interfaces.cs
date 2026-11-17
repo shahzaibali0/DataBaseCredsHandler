@@ -22,3 +22,29 @@ public interface ISettingsStore
     AppSettings Load();
     void Save(AppSettings settings);
 }
+
+/// <summary>The three stores the app keeps its data in, passed around together.</summary>
+public sealed record DataStores(IConnectionRepository Connections, ICredentialStore Credentials, ISettingsStore Settings);
+
+/// <summary>
+/// A data file exists but cannot be read (broken JSON, locked, no access). The store has copied it to
+/// <see cref="BackupPath"/> and refuses to save over it, so the user's data is never silently replaced.
+/// </summary>
+public sealed class DataFileUnreadableException : Exception
+{
+    public DataFileUnreadableException(string filePath, string? backupPath, Exception? cause)
+        : base(BuildMessage(filePath, backupPath), cause)
+    {
+        FilePath = filePath;
+        BackupPath = backupPath;
+    }
+
+    public string FilePath { get; }
+
+    public string? BackupPath { get; }
+
+    private static string BuildMessage(string filePath, string? backupPath) =>
+        backupPath is null
+            ? $"The data file {filePath} could not be read."
+            : $"The data file {filePath} could not be read. A copy was saved as {backupPath}.";
+}

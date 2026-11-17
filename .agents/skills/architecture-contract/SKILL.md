@@ -13,9 +13,13 @@ The settled requirements: a small local tool whose security rules are easy to se
 
 ```
                  ┌──────────────────────────┐
-                 │   PgCredsHandler.App     │  WPF views, viewmodels, app services,
-                 │   (composition root)     │  wiring in App.xaml.cs
+                 │   PgCredsHandler.App     │  WinUI 3 window and pages, shell service,
+                 │   (composition root)     │  wiring in App.OnLaunched
                  └──┬─────────┬─────────┬───┘
+                    │   ┌─────▼───────────────────┐
+                    │   │ PgCredsHandler.Presentation │  viewmodels: state, commands,
+                    │   │ (no UI framework)       │  grouping, filtering (→ Core, Scanner)
+                    │   └─────────────────────────┘
                     │         │         │
         ┌───────────▼──┐ ┌────▼──────┐ ┌▼──────────────┐
         │   Scanner    │ │  Storage  │ │ Integrations  │   adapters: files, disk,
@@ -29,7 +33,7 @@ The settled requirements: a small local tool whose security rules are easy to se
                  └──────────────────────────┘
 ```
 
-- Core references nothing in the solution. Scanner, Storage and Integrations reference Core only, never each other. App references everything. Tests reference whatever they test.
+- Core references nothing in the solution. Scanner, Storage and Integrations reference Core only, never each other. Presentation references Core and Scanner and no UI framework. App references everything. Tests reference whatever they test, except the WinUI App.
 - Core, Scanner and Integrations target `net8.0` and stay OS-neutral. Windows-only code (`[SupportedOSPlatform("windows")]`, P/Invoke, WinRT) lives in Storage or App.
 - Core does no I/O: no `File`, `Directory`, `Process`, network, clock (`now` is a parameter) or credential store (passwords arrive through a delegate).
 
@@ -44,7 +48,8 @@ The settled requirements: a small local tool whose security rules are easy to se
 | Discovery | Scanner | Walking scan roots, finding project roots, turning files into `DiscoveredConnection`s, defaults (localhost / 5432 / postgres) | Saving anything, deciding merges |
 | Persistence | Storage | JSON files (atomic writes), Credential Manager | Business rules |
 | Handoff to clients | Integrations | Connection strings, connectivity test, launching DBeaver, writing pgAdmin `servers.json` | Reading the credential store, UI |
-| Presentation | App | Screens, viewmodels, Windows Hello, clipboard, timers, wiring | Parsing, merge rules, file formats |
+| Screen state | Presentation | Viewmodels: what each screen shows, commands, grouping, filtering, counts | XAML, pickers, OS APIs |
+| Presentation | App | XAML pages and window, pickers, Explorer, Windows Hello, clipboard, timers, wiring | Parsing, merge rules, file formats, screen logic |
 
 ## Locate the owner before changing code
 
@@ -52,13 +57,15 @@ The settled requirements: a small local tool whose security rules are easy to se
 | --- | --- | --- |
 | Decide whether two connections are the same | `ConnectionKey.Create` | `SavedConnection.Fingerprint`, `DiscoveredConnection.Fingerprint` |
 | Pick one entry among duplicates found in a scan | `ConnectionMerger.Deduplicate` | `ConnectionMerger.Merge` |
-| Apply a scan to the saved list | `ConnectionMerger.Merge` | App's scan command (to build) |
+| Apply a scan to the saved list | `ConnectionMerger.Merge` | `ScanWorkflow.ScanAndSave` |
+| Scan, merge and save in one step (the "Scan my PC" button) | `ScanWorkflow.ScanAndSave` in Scanner | `MainViewModel.ScanCommand` |
+| Pick the default scan roots (all fixed drives) | `LocalDrives.ListFixedDriveRoots` | `ScanWorkflow` via the composition root |
 | Find config files and project roots | `ProjectWalker.Walk` | `ProjectScanner.Scan` |
 | Turn one file into credentials | the matching `IConfigParser` | `ProjectScanner.Scan` |
 | Expand `${VAR}` references | `VariableExpander.Expand` | `EnvFileParser`, `DockerComposeParser` |
 | Classify a host as Local / DockerService / Private / Remote | `HostClassifier.Classify` | App row badges (to build) |
 | Store, read, delete a password | `ICredentialStore` (`WindowsCredentialStore`) | App only (Integrations receive the password as an argument) |
-| Load and save connections and settings | `IConnectionRepository`, `ISettingsStore` | App only |
+| Load and save connections and settings | `IConnectionRepository`, `ISettingsStore` (`JsonDataFile` does the file work: missing = empty, broken = backup + `DataFileUnreadableException`) | `ScanWorkflow`, App |
 | Build a connection string | `ConnectionStringBuilder` (to build; today `PostgresUrl.ToUrl`/`ToJdbc`) | App copy commands |
 | Open in DBeaver / export to pgAdmin / test | `DbeaverLauncher`, `PgAdminExporter`, `ConnectionTester` (to build) | App row commands |
 | Gate reveal and copy | `UnlockService` (to build) | Reveal and copy commands |
@@ -74,7 +81,7 @@ When to use or avoid any pattern, and how each looks in C#, is in `.agents/rules
 | **Strategy + registry** | `IConfigParser` implementations, `DefaultParsers.All` | One class per format. Register it in one place. Parsers never call each other except through shared helpers (`EnvFileParser.ReadFile`, `EnvCredentialExtractor`). |
 | **Repository** | `JsonConnectionRepository`, `JsonSettingsStore` | Whole-file load and atomic whole-file save. No partial updates, no caching inside the repository. |
 | **Factory** | `CredentialStoreFactory.Create` | The one place that picks the credential store by OS. |
-| **MVVM** | App | Views bind to viewmodels; viewmodels call services; services call ports. See [ui.md](../wpf-mvvm-ui/SKILL.md). |
+| **MVVM** | Presentation (viewmodels) + App (views) | Views `x:Bind` to viewmodels; viewmodels call services; services call ports. See [desktop-ui](../desktop-ui/SKILL.md). |
 | **Result object** | Integrations (to build), `MergeResult` | Expected failures are values with a user-facing message, not exceptions. |
 | **Iterator** | `ProjectWalker.Walk` yields files lazily | Keep the walk lazy and cancellable; don't collect every file before parsing. |
 

@@ -4,7 +4,7 @@ What this project is, what must never break, and the facts every change needs. L
 
 ## What is this
 
-PgCreds Handler is a **Windows desktop tool** (WPF, .NET 8) that each user runs on their own machine. It is open source (MIT). It scans folders the user chooses (e.g. `C:\Users\you\Projects`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
+PgCreds Handler is a **Windows desktop tool** (WinUI 3, .NET 8) that each user runs on their own machine. It is open source (MIT). It scans folders the user chooses (e.g. `C:\Users\you\Projects`), finds Postgres credentials in each project's config files (`.env`, `docker-compose.yml`, `appsettings*.json`), stores them securely, shows them grouped by project, and opens a connection in DBeaver, pgAdmin or any other client with one click.
 
 It is a personal password manager for databases that discovers its own entries. It is not a web app, it has no server, and it never touches anyone else's data.
 
@@ -20,15 +20,16 @@ Two failures defeat the point of the tool. Be careful wherever they can happen:
 ```bash
 dotnet build PgCredsHandler.sln                 # must be 0 errors, 0 warnings
 dotnet test                                     # xunit, tests/PgCredsHandler.Tests
-dotnet run --project src/PgCredsHandler.App     # Windows only
+dotnet run --project src/PgCredsHandler.App     # Windows only; or double-click start.cmd
 ```
 
 ## Stack
 
-- **WPF on .NET 8**, MVVM with **CommunityToolkit.Mvvm** 8.3.2, UI controls from **WPF-UI** 3.0.5 (Fluent, dark theme).
+- **WinUI 3** (Windows App SDK 1.8, unpackaged, self-contained) on **.NET 8**, MVVM with **CommunityToolkit.Mvvm** 8.3.2, controls from **CommunityToolkit.WinUI** 8.2 (SettingsCard/SettingsExpander, Segmented) and **WinUIEx** 2.9. Mica, NavigationView, theme follows Windows.
 - **Npgsql** 8.0.5 (Integrations), **YamlDotNet** (Scanner), **xunit** 2.9 (Tests).
-- The App targets `net8.0-windows10.0.19041.0` (needed for `UserConsentVerifier`) and sets `<RollForward>Major</RollForward>`: the dev machine has only the .NET 10 Desktop Runtime. Keep it unless the .NET 8 Desktop Runtime gets installed.
-- Build on Windows. Core, Scanner, Integrations and Tests are plain `net8.0` and must stay OS-neutral; only Storage and App are Windows-specific.
+- The App targets `net8.0-windows10.0.19041.0` (needed for `UserConsentVerifier`) and sets `<RollForward>Major</RollForward>`: the dev machine has only the .NET 10 runtime. Keep it unless a .NET 8 runtime gets installed.
+- Build on Windows. Core, Scanner, Integrations and Presentation are plain `net8.0` and must stay OS-neutral; Storage and App are Windows-specific. Tests target `net8.0-windows10.0.19041.0` so they can cover Storage; they do not reference the WinUI App.
+- The App's assembly is named `PgCredsHandler`, so the program is `PgCredsHandler.exe`. Debug builds land in `src/PgCredsHandler.App/bin/Debug/net8.0-windows10.0.19041.0/win-x64/`. Releases are one self-contained file built by `.github/workflows/release.yml` on a `v*` tag; `ci.yml` builds and tests every push.
 
 ## Solution layout
 
@@ -38,12 +39,13 @@ src/
   PgCredsHandler.Scanner       ProjectWalker + IConfigParser implementations (.env, compose, appsettings)
   PgCredsHandler.Storage       JSON metadata repositories + WindowsCredentialStore
   PgCredsHandler.Integrations  connection strings, Npgsql test, DBeaver launch, pgAdmin export  [to build]
-  PgCredsHandler.App           WPF views, viewmodels, app services                             [to build]
+  PgCredsHandler.Presentation  viewmodels (MainViewModel, rows, project groups), IDesktopShell; no UI framework
+  PgCredsHandler.App           WinUI 3: window, pages (Databases, Privacy & data, Settings), shell service, styles
 tests/
-  PgCredsHandler.Tests         xunit                                                           [to build]
+  PgCredsHandler.Tests         xunit: storage, merge, walker, scan workflow, viewmodels, privacy
 ```
 
-Dependencies point inward: everything may reference Core; Scanner, Storage and Integrations never reference each other or App; only App references everything. Layers, owners and the patterns in use: skill `architecture-contract`.
+Dependencies point inward: everything may reference Core; Scanner, Storage and Integrations never reference each other or App; Presentation references Core and Scanner; only App references everything. Layers, owners and the patterns in use: skill `architecture-contract`.
 
 ## Constraints
 
@@ -54,11 +56,11 @@ Dependencies point inward: everything may reference Core; Scanner, Storage and I
 - **Scans are additive.** Only `ConnectionMerger.Merge` decides what a scan changes. Manual entries (`IsManual`) are never touched; missing ones become `IsStale` only if under a scanned root; a changed password sets `PasswordChangedAt`; `HiddenFingerprints` are skipped.
 - **Deleting a scanned entry** removes its credential and adds its `Fingerprint` to `AppSettings.HiddenFingerprints` in the same user action. Deleting a manual entry just removes it and its credential.
 - **Reveal and copy are gated.** Masked by default. With `RequireWindowsHello`, a Windows Hello check (`UserConsentVerifier`) unlocks for `UnlockMinutes` (5). A revealed password hides after `RevealSeconds` (30). A copied password is cleared after `ClipboardClearSeconds` (30), only if the clipboard still holds that value. These numbers are `AppSettings`, not constants.
-- **Scanner scope:** only the user's `ScanRoots`; `ExcludedFolderNames` are skipped; junctions and symlinks are not followed; depth is capped (12). Never scan outside a chosen root, never read `%APPDATA%` or system folders.
+- **Scanner scope:** the user's `ScanRoots`, or, when none are chosen (the default), every fixed local drive from `LocalDrives.ListFixedDriveRoots` (USB, network and CD drives never). `ExcludedFolderNames`, dot-folders and `$`-folders are skipped; junctions and symlinks are not followed; depth is capped (12). Never read `%APPDATA%` or system folders. A scan only starts when the user presses the button.
 - **Host safety:** every connection shows its `HostClassifier` kind. `Remote` is red and must be visible before the user connects.
 - A malformed config file is skipped quietly. One bad file never stops a scan.
 - Writes to `connections.json` and `settings.json` are atomic (temp file + `File.Replace`). Keep it that way for any new file the app owns.
-- No network calls except `ConnectionTester` connecting to the database the user asked to test. No telemetry, no update checks.
+- **Privacy promise:** nothing the app finds ever leaves the PC. No network calls except Integrations connecting to a database the user asked to test or open. No telemetry, no update checks, no crash upload. `PrivacyTests` fails the build if Core, Scanner, Storage or App reference a networking library; keep it passing and keep the promise visible in the app's footer and the README.
 
 ## Vocabulary
 
@@ -81,10 +83,14 @@ Run `dotnet build PgCredsHandler.sln` (0 errors, 0 warnings) and `dotnet test`, 
 
 ## Build order (what's left)
 
-1. **Integrations**: `ConnectionStringBuilder`, `ConnectionTester`, `DbeaverLauncher`, `PgAdminExporter`. Skill: `db-client-integrations`.
-2. **Tests**: `PostgresUrl`, `KeyValueConnectionString`, `EnvFileParser`, `DockerComposeParser`, `ConnectionMerger`, then Integrations. Skill: `xunit-testing`.
-3. **App**: connection list grouped by project, search, reveal/copy with Windows Hello, settings page, add/edit dialog. Skill: `wpf-mvvm-ui`.
-4. Later: more parsers (Django `settings.py`, Rails `database.yml`, Prisma, Spring), rescan on file change.
+Done: the scan module (first-run screen, one-button whole-PC scan with progress and cancel, merge and save, list grouped by project with host badges and search, privacy footer), the data-loss fix, `start.cmd`, CI and release workflows, 37 tests.
+
+1. **Enforce the rules in the build**: `.editorconfig`, analyzers, warnings as errors.
+2. **Parser tests**: `PostgresUrl`, `KeyValueConnectionString`, `EnvFileParser`, `DockerComposeParser`, `AppSettingsJsonParser`, `HostClassifier`. Skill: `xunit-testing`.
+3. **Integrations, then auto-connect**: `ConnectionStringBuilder`, `ConnectionTester`, `DbeaverLauncher`, `PgAdminExporter`, then one-click "Open in DBeaver / pgAdmin" from a row. Skill: `db-client-integrations`.
+4. **Password flows**: reveal/copy with Windows Hello. Skills: `credential-safety`, `desktop-ui`.
+5. **Settings and editing**: settings page, add/edit dialog, delete with hidden fingerprints.
+6. Later: more parsers (Django `settings.py`, Rails `database.yml`, Prisma, Spring), rescan on file change.
 
 ## Git
 

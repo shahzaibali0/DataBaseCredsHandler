@@ -38,3 +38,6 @@ PgCredsHandler/
 # Claude Code: shared settings are committed, per-machine ones are not
 !.claude/settings.json
 .claude/settings.local.json
+
+# Local release builds
+publish/

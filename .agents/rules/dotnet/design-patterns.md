@@ -46,7 +46,7 @@ Follow these. Don't add a second way of doing the same thing.
 ## Behavioural
 
 - **Chain of Responsibility**: for a fixed order, write named steps in one method and return early on refusal. A runtime chain (`IEnumerable<IStep>` run in order) only when steps are added by configuration. ASP.NET middleware is the framework's version.
-- **Command**: `ICommand` via CommunityToolkit's `[RelayCommand]` / `AsyncRelayCommand` in WPF. For undo or queues, a `record` describing the action plus one executor.
+- **Command**: `ICommand` via CommunityToolkit's `[RelayCommand]` / `AsyncRelayCommand` in WinUI or WPF. For undo or queues, a `record` describing the action plus one executor.
 - **Iterator**: `IEnumerable<T>` / `IAsyncEnumerable<T>` with `yield return`. Never a hand-written iterator class. Don't enumerate a lazy sequence twice; materialize with `ToList()` when you need to.
 - **Mediator**: avoid a mediator library (MediatR-style) in this app: it hides who calls whom. A viewmodel calls a service directly. If screens must talk, give them one shared service.
 - **Memento**: keep the previous immutable `record`, or `Clone()` before editing, so "Cancel" restores it.

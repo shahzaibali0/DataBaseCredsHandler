@@ -20,7 +20,7 @@ Claude Code loads `rules/` itself through `.claude/rules` (files without `paths:
   rules/
     project/           this project's facts and constraints (always loaded)
     common/            rules for any stack, shared with the owner's Next.js projects
-    dotnet/            how the common rules apply in C#, WPF and xunit
+    dotnet/            how the common rules apply in C#, WinUI 3 and xunit
   skills/<name>/       detailed, area-specific rules and specs (SKILL.md + references)
   agents/<name>.md     subagent definitions
 ```
@@ -42,7 +42,7 @@ Claude Code loads `rules/` itself through `.claude/rules` (files without `paths:
 | [dotnet/code-style.md](rules/dotnet/code-style.md) | `.cs` | Limits (60-line methods, 400-line files, 3 params), C# naming, types, exceptions, comments, `dotnet format` |
 | [dotnet/design-patterns.md](rules/dotnet/design-patterns.md) | `.cs`, `.xaml` | Each pattern as C#/.NET idioms, and where this repo already uses it |
 | [dotnet/testing.md](rules/dotnet/testing.md) | tests | xunit setup, naming, fakes over mocks, temp folders, integration traits |
-| [dotnet/wpf.md](rules/dotnet/wpf.md) | `.xaml`, views, viewmodels | MVVM, binding and threading, look and feel, secrets on screen |
+| [dotnet/winui.md](rules/dotnet/winui.md) | `.xaml`, App, Presentation | Presentation vs App, MVVM, x:Bind, threading, look and feel, secrets on screen, packaging |
 
 ## Skills
 
@@ -54,7 +54,7 @@ If your tool does not load skills on its own, open the `SKILL.md` and follow it 
 | [credential-safety](skills/credential-safety/SKILL.md) | Write or review anything that reads, shows, copies, logs or passes a password |
 | [scan-and-merge](skills/scan-and-merge/SKILL.md) | Change the scanner, a parser or the merge rules, or add a config format |
 | [db-client-integrations](skills/db-client-integrations/SKILL.md) | Build connection strings, the connection test, DBeaver launch, pgAdmin export |
-| [wpf-mvvm-ui](skills/wpf-mvvm-ui/SKILL.md) | Build XAML, viewmodels, app services and startup |
+| [desktop-ui](skills/desktop-ui/SKILL.md) | Build or change pages, the window, viewmodels and app services (WinUI 3) |
 | [xunit-testing](skills/xunit-testing/SKILL.md) | Write or run tests, or reproduce a bug as a failing test |
 
 ## Subagents
@@ -63,7 +63,7 @@ If your tool does not load skills on its own, open the `SKILL.md` and follow it 
 | --- | --- |
 | [integrations-builder](agents/integrations-builder.md) | Build or change `PgCredsHandler.Integrations` |
 | [test-writer](agents/test-writer.md) | Add xunit coverage, or reproduce a parsing/merge bug as a failing test |
-| [wpf-ui-builder](agents/wpf-ui-builder.md) | Build XAML, viewmodels and app services |
+| [ui-builder](agents/ui-builder.md) | Build WinUI pages, viewmodels and app services |
 | [secrets-reviewer](agents/secrets-reviewer.md) | Read-only review of password handling after Storage, Integrations or App changes |
 
 Subagents may not receive the rule files. Whoever starts one tells it to read this file, `rules/project/overview.md` and the rules and skill for its area.

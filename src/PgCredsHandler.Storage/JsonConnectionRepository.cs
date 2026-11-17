@@ -1,41 +1,20 @@
-using System.Text.Json;
 using PgCredsHandler.Core.Abstractions;
 using PgCredsHandler.Core.Models;
 
 namespace PgCredsHandler.Storage;
 
 /// <summary>
-/// Stores connection metadata as JSON (no passwords). Writes atomically via a temp file + replace
-/// so a crash mid-write can't corrupt the list.
+/// Stores connection metadata as JSON (no passwords) in <c>%APPDATA%\PgCredsHandler\connections.json</c>.
+/// A file that exists but can't be read throws <see cref="DataFileUnreadableException"/> and is never saved over.
 /// </summary>
 public sealed class JsonConnectionRepository : IConnectionRepository
 {
-    private readonly string _path;
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
+    private readonly JsonDataFile<List<SavedConnection>> _file;
 
-    public JsonConnectionRepository(string? path = null) => _path = path ?? Paths.ConnectionsFile;
+    public JsonConnectionRepository(string? path = null) =>
+        _file = new JsonDataFile<List<SavedConnection>>(path ?? Paths.ConnectionsFile);
 
-    public IReadOnlyList<SavedConnection> GetAll()
-    {
-        try
-        {
-            if (!File.Exists(_path)) return Array.Empty<SavedConnection>();
-            var json = File.ReadAllText(_path);
-            return JsonSerializer.Deserialize<List<SavedConnection>>(json, Options) ?? new();
-        }
-        catch { return Array.Empty<SavedConnection>(); }
-    }
+    public IReadOnlyList<SavedConnection> GetAll() => _file.Read() ?? [];
 
-    public void SaveAll(IEnumerable<SavedConnection> connections)
-    {
-        var json = JsonSerializer.Serialize(connections.ToList(), Options);
-        var tmp = _path + ".tmp";
-        File.WriteAllText(tmp, json);
-        if (File.Exists(_path)) File.Replace(tmp, _path, null);
-        else File.Move(tmp, _path);
-    }
+    public void SaveAll(IEnumerable<SavedConnection> connections) => _file.Write(connections.ToList());
 }

@@ -6,7 +6,11 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 ### Stack
 
-- WPF on .NET 8 with CommunityToolkit.Mvvm and WPF-UI, because it is a Windows-only desktop tool that needs Windows Hello and Credential Manager, and the toolkit's source generators remove MVVM boilerplate.
+- WinUI 3 (Windows App SDK 1.8) on .NET 8 with CommunityToolkit.Mvvm, because it is a Windows-only desktop tool that needs Windows Hello and Credential Manager, WinUI 3 gives Microsoft's own native Windows 11 look (Mica, NavigationView), and the toolkit's source generators remove MVVM boilerplate. Proton VPN's Windows app made the same move from WPF to WinUI 3. (The first UI was WPF with WPF-UI; replaced on 2026-11-17 while it was still one screen, the cheapest time to switch.)
+- Third-party UI: CommunityToolkit.WinUI controls (SettingsCard/SettingsExpander, Segmented) and WinUIEx window helpers, because they are free, MIT-licensed and the same set Proton VPN uses; commercial suites (Telerik, Syncfusion, DevExpress) were rejected because their licences don't fit an MIT project anyone can clone and build.
+- The plain WinUI `Window` with WinUIEx helpers, not WinUIEx's `WindowEx` base class, because `WindowEx`'s obsolete `Icon` member puts warnings into generated code and the build must stay at 0 warnings without suppressions.
+- Viewmodels live in a separate `PgCredsHandler.Presentation` project (plain `net8.0`, no UI framework), because WinUI projects are hard to unit-test and the privacy test must cover the code that shows data; the App holds only XAML and a small shell service.
+- Unpackaged, self-contained Windows App SDK, published as one file with `EnableMsixTooling` (build tooling only), because users should download one `.exe` and double-click it: no MSIX, no Store, no runtime install.
 - The App sets `<RollForward>Major</RollForward>`, because the dev machine has only the .NET 10 Desktop Runtime and the app must still run there.
 - Core, Scanner and Integrations target plain `net8.0`, because keeping them OS-neutral lets them be built and tested anywhere and keeps Windows APIs in the two projects that need them.
 
@@ -16,6 +20,8 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 - Core is pure (no I/O, `now` and password reads passed in), because the merge and parsing rules are the riskiest logic and pure functions can be tested without files or OS stores.
 - One `IConfigParser` per config format in a registry, because new formats (Django, Rails, Prisma, Spring) are expected and each should be one new file.
 - Manual wiring in `App.xaml.cs` instead of a DI container, because the app has a handful of services; revisit when the root gets hard to read.
+- The scan-and-save operation (`ScanWorkflow`) lives in the Scanner project, using only Core interfaces, because it can then be tested end to end on a temp folder without a window.
+- Tests target `net8.0-windows10.0.19041.0`, because Storage and the App are Windows-only and the data-loss and privacy tests must cover them.
 
 ### Secrets
 
@@ -42,11 +48,20 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 - Each user's data stays on their own PC (`%APPDATA%\PgCredsHandler\` + Credential Manager) and is created on first run, because the repo is public and nobody's connections may ever be pushed; `.gitignore` also lists the data file names as a safety net.
 - `.claude/` entries are committed as relative symlinks into `.agents/`, not junctions or copies, because git stores symlinks and every clone then gets one copy of the instructions.
 
+- The main button scans every fixed local drive by default, with "Choose folders instead" as the alternative, because users want one click to find everything; USB, network and CD drives are left out because they are slow and may not be the user's.
+- A scan only runs when the user presses the button, never automatically on first launch, because walking a whole PC should be the user's choice.
+- Two ways to start: a self-contained single-file `PgCredsHandler.exe` on GitHub Releases (built by `release.yml` on a `v*` tag) for users, and `start.cmd` for people who clone, because neither should need to know `dotnet` commands.
+- The privacy promise (nothing leaves the PC) is shown in the app's footer and the README and enforced by `PrivacyTests`, which fails if Core, Scanner, Storage or App reference a networking library, because an open-source tool that reads credentials must be easy to trust and easy to audit.
+- A data file that exists but can't be read is backed up and never saved over, and the app disables scanning until the user fixes it, because silently starting empty would erase manual entries and resurrect deleted ones.
+
 _New decisions go here, one line each: the choice, then why._
 
 ## Open
 
+- Auto-connect: after the integrations exist, one click on a row opens it in DBeaver or pgAdmin with everything filled in; decide whether to also detect installed clients and offer "Open in…" only for those.
+- Code signing for the release exe, so Windows SmartScreen doesn't warn first-time users.
+
 - An `.editorconfig` with the C# naming and formatting rules plus `TreatWarningsAsErrors` and .NET analyzers in a `Directory.Build.props`, so the code-style rules are checked by the build instead of by review.
 - A Claude Code `PostToolUse` hook that runs `dotnet format` on each edited `.cs` file, like the Next.js template's format-on-edit hook.
 - Logging: whether the desktop app needs `ILogger` at all, and if so where the log goes (a rolling file under `%LOCALAPPDATA%`), given nothing secret may reach it.
-- CRED_PERSIST_ENTERPRISE (roams with a domain profile) versus CRED_PERSIST_LOCAL_MACHINE (stays on this PC). See WHAT_TO_FIX item 2.
+- CRED_PERSIST_ENTERPRISE (roams with a domain profile) versus CRED_PERSIST_LOCAL_MACHINE (stays on this PC). See WHAT_TO_FIX item 1.

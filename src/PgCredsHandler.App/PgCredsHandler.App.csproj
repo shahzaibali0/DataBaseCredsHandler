@@ -3,18 +3,32 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>PgCredsHandler.App</RootNamespace>
+    <AssemblyName>PgCredsHandler</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <RootNamespace>PgCredsHandler.App</RootNamespace>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Only the .NET 10 Desktop Runtime is installed locally; let the net8 app roll forward onto it. -->
+
+    <!-- WinUI 3, run unpackaged (no MSIX, no Store), with the Windows App SDK runtime copied next to the exe,
+         the same way Proton VPN ships its Windows app. -->
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- Build tooling only (it generates resources.pri), needed for a single-file publish; the app stays unpackaged. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <Platforms>x64</Platforms>
+
+    <!-- Only the .NET 10 runtime is installed on the dev machine; let the net8 app roll forward onto it. -->
     <RollForward>Major</RollForward>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
-    <PackageReference Include="WPF-UI" Version="3.0.5" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.SettingsControls" Version="8.2.251219" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.Segmented" Version="8.2.251219" />
+    <PackageReference Include="WinUIEx" Version="2.9.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,6 +36,7 @@
     <ProjectReference Include="..\PgCredsHandler.Scanner\PgCredsHandler.Scanner.csproj" />
     <ProjectReference Include="..\PgCredsHandler.Storage\PgCredsHandler.Storage.csproj" />
     <ProjectReference Include="..\PgCredsHandler.Integrations\PgCredsHandler.Integrations.csproj" />
+    <ProjectReference Include="..\PgCredsHandler.Presentation\PgCredsHandler.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
