@@ -62,6 +62,8 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 - The database password is masked with an eye button in the project window, because the owner asked for an eye to see credentials; it is read from Credential Manager only when the eye or Copy is clicked and masked again when the window closes.
 - "Open in" buttons: DBeaver connects directly (`-con`, password on its command line, an accepted trade-off), pgAdmin gets the server imported with its own `setup.py load-servers` (no password in the file, so pgAdmin asks once), DbVisualizer is started and the connection URL copied, because only DBeaver offers a direct connect option and passwords must not be written to files. pgAdmin is also found where the PostgreSQL installer bundles it (`Program Files\PostgreSQL\<version>\pgAdmin 4`).
 
+- Live status dots (running / not running) come from a 300 ms connect to the port on localhost only, every 15 seconds and after scans, because the owner wants to see at a glance which projects are up; only loopback is ever probed, so a remote or production server is never contacted, and the check lives in Integrations so `PrivacyTests` still guards everything else.
+
 _New decisions go here, one line each: the choice, then why._
 
 ## Open

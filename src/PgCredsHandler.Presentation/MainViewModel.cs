@@ -96,6 +96,39 @@ public sealed partial class MainViewModel : ObservableObject
         LoadSettings();
     });
 
+    /// <summary>How often running/stopped is checked again while the app is open.</summary>
+    public static readonly TimeSpan StatusInterval = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// Checks which dev servers and local databases are running. Only ports on this PC are checked,
+    /// each once even when several apps share it.
+    /// </summary>
+    public async Task RefreshStatusAsync(CancellationToken cancellationToken)
+    {
+        var apps = Workspaces.SelectMany(project => project.Apps).Where(app => app.LocalPort is not null).ToList();
+        var databases = _databases.Where(database => database.IsOnThisPc).ToList();
+        var ports = apps.Select(app => app.LocalPort!.Value).Concat(databases.Select(database => database.Port)).Distinct();
+
+        var probes = ports.ToDictionary(port => port, port => _services.Ports.IsListeningAsync(port, cancellationToken));
+        await Task.WhenAll(probes.Values);
+
+        RunState StateOf(int port) => probes[port].Result ? RunState.Running : RunState.Stopped;
+        foreach (var app in apps) app.RunState = StateOf(app.LocalPort!.Value);
+        foreach (var database in databases) database.RunState = StateOf(database.Port);
+    }
+
+    /// <summary>Keeps the running/stopped dots fresh until the token is cancelled (the app exits).</summary>
+    public async Task KeepStatusFreshAsync(CancellationToken cancellationToken)
+    {
+        using var timer = new PeriodicTimer(StatusInterval);
+        do
+        {
+            try { await RefreshStatusAsync(cancellationToken); }
+            catch (OperationCanceledException) { return; }
+        }
+        while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(true));
+    }
+
     /// <summary>Masks and forgets every shown password; used when the window hides and before a rescan replaces rows.</summary>
     public void HideAllPasswords()
     {
@@ -117,6 +150,7 @@ public sealed partial class MainViewModel : ObservableObject
             var summary = await Task.Run(() => _services.ScanWorkflow.ScanAndSave(progress, cancellationToken), cancellationToken);
             ShowSaved();
             Summary = DescribeSummary(summary);
+            _ = RefreshStatusQuietlyAsync();
         }
         catch (OperationCanceledException)
         {
@@ -150,6 +184,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         _services.Databases.RefreshInstalledTools();
         SelectedProject = project;
+        _ = RefreshStatusQuietlyAsync();
     }
 
     [RelayCommand]
@@ -157,6 +192,13 @@ public sealed partial class MainViewModel : ObservableObject
     {
         SelectedProject?.HidePasswords();
         SelectedProject = null;
+    }
+
+    // A status check is only decoration: a failure must never surface as an error.
+    private async Task RefreshStatusQuietlyAsync()
+    {
+        try { await RefreshStatusAsync(CancellationToken.None); }
+        catch (Exception exception) when (exception is not OutOfMemoryException) { /* the next tick tries again */ }
     }
 
     private void RunGuarded(Action action)

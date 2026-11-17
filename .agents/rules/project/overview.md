@@ -61,7 +61,7 @@ Dependencies point inward: everything may reference Core; Scanner, Storage and I
 - **Host safety:** every connection shows its `HostClassifier` kind. `Remote` is red and must be visible before the user connects.
 - A malformed config file is skipped quietly. One bad file never stops a scan.
 - Writes to `connections.json` and `settings.json` are atomic (temp file + `File.Replace`). Keep it that way for any new file the app owns.
-- **Privacy promise:** nothing the app finds ever leaves the PC. No network calls except Integrations connecting to a database the user asked to test or open. No telemetry, no update checks, no crash upload. `PrivacyTests` fails the build if Core, Scanner, Storage or App reference a networking library; keep it passing and keep the promise visible in the app's footer and the README.
+- **Privacy promise:** nothing the app finds ever leaves the PC. No network calls except Integrations connecting to a database the user asked to test or open, and `LocalPortProbe` opening and closing a connection to a port on this PC (127.0.0.1 / ::1 only, nothing sent) to show whether a local dev server or database is running. A remote host is never contacted for status. No telemetry, no update checks, no crash upload. `PrivacyTests` fails the build if Core, Scanner, Storage or App reference a networking library; keep it passing and keep the promise visible in the app's footer and the README.
 
 ## Vocabulary
 

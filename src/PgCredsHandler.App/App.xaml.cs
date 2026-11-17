@@ -18,6 +18,7 @@ public partial class App : Application
     private MainWindow? _mainWindow;
     private MainViewModel? _viewModel;
     private TrayIcon? _trayIcon;
+    private readonly CancellationTokenSource _stopping = new();
 
     public App() => InitializeComponent();
 
@@ -40,6 +41,7 @@ public partial class App : Application
 
         if (!Environment.GetCommandLineArgs().Contains(StartupRegistration.BackgroundArgument)) ShowMainWindow();
         if (_viewModel.ShouldScanOnStartup) _viewModel.ScanCommand.Execute(null);
+        _ = _viewModel.KeepStatusFreshAsync(_stopping.Token);
     }
 
     private MainViewModel CreateViewModel()
@@ -49,7 +51,7 @@ public partial class App : Application
             new JsonConnectionRepository(), CredentialStoreFactory.Create(), new JsonSettingsStore(), new JsonInventoryRepository());
         var services = new AppServices(
             new ScanWorkflow(stores, LocalDrives.ListFixedDriveRoots), stores, new DesktopShell(windowHandle), new StartupRegistration(),
-            new DatabaseActions(stores.Credentials, new DatabaseTools(), new SecretClipboard()));
+            new DatabaseActions(stores.Credentials, new DatabaseTools(), new SecretClipboard()), new LocalPorts());
 
         var viewModel = new MainViewModel(services);
         viewModel.Load();
@@ -60,6 +62,7 @@ public partial class App : Application
 
     private void ExitApp()
     {
+        _stopping.Cancel();
         _viewModel?.HideAllPasswords();
         _trayIcon?.Dispose();
         _mainWindow?.CloseForExit();

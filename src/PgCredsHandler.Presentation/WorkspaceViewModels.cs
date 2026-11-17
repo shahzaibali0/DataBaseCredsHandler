@@ -1,9 +1,10 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using PgCredsHandler.Core.Models;
 
 namespace PgCredsHandler.Presentation;
 
 /// <summary>One app inside a project: its role, framework, local server and databases.</summary>
-public sealed class AppGroupViewModel
+public sealed partial class AppGroupViewModel : ObservableObject
 {
     public AppGroupViewModel(SavedApp app, IReadOnlyList<ConnectionRowViewModel> databases)
     {
@@ -44,6 +45,13 @@ public sealed class AppGroupViewModel
     public IReadOnlyList<ConnectionRowViewModel> Databases { get; }
 
     public bool HasDatabases => Databases.Count > 0;
+
+    /// <summary>The dev server's port on this PC, or null when it isn't a localhost address.</summary>
+    public int? LocalPort => Uri.TryCreate(App.LocalUrl, UriKind.Absolute, out var url) && url.IsLoopback ? url.Port : null;
+
+    /// <summary>Whether the dev server is running right now.</summary>
+    [ObservableProperty]
+    private RunState _runState;
 }
 
 /// <summary>The notable packages of one purpose, e.g. "Database: Prisma, Redis".</summary>

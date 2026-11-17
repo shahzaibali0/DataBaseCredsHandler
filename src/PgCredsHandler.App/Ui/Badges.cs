@@ -2,6 +2,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using PgCredsHandler.Core.Models;
 using PgCredsHandler.Core.Util;
+using PgCredsHandler.Presentation;
 
 namespace PgCredsHandler.App.Ui;
 
@@ -20,6 +21,20 @@ public static class Badges
     public static string FormatCount(int count) => count.ToString("N0", System.Globalization.CultureInfo.CurrentCulture);
 
     public static Visibility IsFalse(bool value) => value ? Visibility.Collapsed : Visibility.Visible;
+
+    public static Brush StatusBrush(RunState state) => (Brush)Application.Current.Resources[state switch
+    {
+        RunState.Running => "RunningBrush",
+        RunState.Stopped => "StoppedBrush",
+        _ => "UnknownStatusBrush",
+    }];
+
+    public static string StatusText(RunState state) => state switch
+    {
+        RunState.Running => "Running",
+        RunState.Stopped => "Not running",
+        _ => "",
+    };
 
     /// <summary>Segoe Fluent Icons: an eye to show, a struck-out eye to hide.</summary>
     public static string EyeGlyph(bool isRevealed) => isRevealed ? "" : "";

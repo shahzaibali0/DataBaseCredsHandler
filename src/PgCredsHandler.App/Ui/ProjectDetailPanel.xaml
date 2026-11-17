@@ -63,7 +63,11 @@
                                             <TextBlock>
                                                 <Run Text="{x:Bind RoleLabel}" FontWeight="SemiBold" /><Run Text="  ·  " /><Run Text="{x:Bind AppName}" />
                                             </TextBlock>
-                                            <TextBlock Text="{x:Bind LocalUrlDisplay}" Style="{StaticResource FieldValueStyle}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <TextBlock Text="{x:Bind LocalUrlDisplay}" Style="{StaticResource FieldValueStyle}" />
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{x:Bind ui:Badges.StatusBrush(RunState), Mode=OneWay}" />
+                                                <TextBlock Text="{x:Bind ui:Badges.StatusText(RunState), Mode=OneWay}" Style="{StaticResource FieldLabelStyle}" />
+                                            </StackPanel>
                                             <TextBlock Style="{StaticResource FieldLabelStyle}">
                                                 <Run Text="{x:Bind Framework}" /><Run Text="  ·  " /><Run Text="{x:Bind LocalUrlSource}" />
                                             </TextBlock>
@@ -107,6 +111,8 @@
                                                 <Border Style="{StaticResource TagStyle}" Visibility="{x:Bind IsStale}">
                                                     <TextBlock Text="No longer found" FontSize="12" />
                                                 </Border>
+                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{x:Bind ui:Badges.StatusBrush(RunState), Mode=OneWay}" />
+                                                <TextBlock Text="{x:Bind ui:Badges.StatusText(RunState), Mode=OneWay}" Style="{StaticResource FieldLabelStyle}" />
                                             </StackPanel>
 
                                             <Grid ColumnSpacing="16" RowSpacing="8">

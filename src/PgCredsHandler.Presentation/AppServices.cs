@@ -17,4 +17,5 @@ public sealed record AppServices(
     DataStores Stores,
     IDesktopShell Shell,
     IStartupRegistration Startup,
-    DatabaseActions Databases);
+    DatabaseActions Databases,
+    ILocalPortProbe Ports);

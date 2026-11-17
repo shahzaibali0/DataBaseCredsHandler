@@ -14,6 +14,7 @@ public sealed class MainViewModelTests : IDisposable
     private readonly FakeStartup _startup = new();
     private readonly FakeDatabaseTools _tools = new();
     private readonly FakeClipboard _clipboard = new();
+    private readonly FakePorts _ports = new();
 
     public void Dispose()
     {
@@ -103,6 +104,36 @@ public sealed class MainViewModelTests : IDisposable
         var (tool, request) = Assert.Single(_tools.Opened);
         Assert.Equal(DatabaseTool.DBeaver, tool);
         Assert.Equal(new DatabaseLaunchRequest("shop_backend · shop_db", "localhost", 5432, "shop_db", "shop_user", "secret-db-1"), request);
+    }
+
+    [Fact]
+    public async Task RefreshStatus_MarksRunningAndStoppedServersAndLocalDatabases()
+    {
+        WriteRepository();
+        var viewModel = await ScannedViewModel();
+        _ports.Listening.UnionWith([3001, 5432]);
+
+        await viewModel.RefreshStatusAsync(CancellationToken.None);
+
+        var project = Assert.Single(viewModel.Workspaces);
+        Assert.Equal([("Backend", RunState.Running), ("Frontend", RunState.Stopped)],
+            project.Servers.Select(app => (app.RoleLabel, app.RunState)));
+        Assert.Equal(RunState.Running, Assert.Single(project.Databases).RunState);
+    }
+
+    [Fact]
+    public async Task RefreshStatus_NeverContactsARemoteDatabase()
+    {
+        WriteRepository();
+        _projects.WriteFile("ShopRepo/shop_backend/appsettings.json",
+            """{ "ConnectionStrings": { "Main": "Host=db.example.com;Port=6543;Database=crm;Username=crm_app;Password=x-123" } }""");
+        var viewModel = await ScannedViewModel();
+
+        await viewModel.RefreshStatusAsync(CancellationToken.None);
+
+        Assert.DoesNotContain(6543, _ports.Checked);
+        var remote = Assert.Single(viewModel.Workspaces.SelectMany(project => project.Databases), database => database.Host == "db.example.com");
+        Assert.Equal(RunState.Unknown, remote.RunState);
     }
 
     [Fact]
@@ -196,7 +227,7 @@ public sealed class MainViewModelTests : IDisposable
             new JsonInventoryRepository(_appData.Combine("inventory.json")));
         var workflow = new ScanWorkflow(stores, defaultRoots ?? (() => [_projects.Path]));
         var databases = new DatabaseActions(stores.Credentials, _tools, _clipboard);
-        return new MainViewModel(new AppServices(workflow, stores, _shell, _startup, databases));
+        return new MainViewModel(new AppServices(workflow, stores, _shell, _startup, databases, _ports));
     }
 
     private sealed class FakeDatabaseTools : IDatabaseTools
@@ -221,5 +252,18 @@ public sealed class MainViewModelTests : IDisposable
         public bool WasSecret { get; private set; }
 
         public void CopyText(string text, bool isSecret) => (Text, WasSecret) = (text, isSecret);
+    }
+
+    private sealed class FakePorts : ILocalPortProbe
+    {
+        public HashSet<int> Listening { get; } = [];
+
+        public List<int> Checked { get; } = [];
+
+        public Task<bool> IsListeningAsync(int port, CancellationToken cancellationToken)
+        {
+            lock (Checked) Checked.Add(port);
+            return Task.FromResult(Listening.Contains(port));
+        }
     }
 }

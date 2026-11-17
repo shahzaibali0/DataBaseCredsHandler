@@ -94,6 +94,11 @@
 
     <SolidColorBrush x:Key="OverlayBackdropBrush" Color="#99000000" />
 
+    <!-- Running / stopped dots for dev servers and local databases. -->
+    <SolidColorBrush x:Key="RunningBrush" Color="#2EA043" />
+    <SolidColorBrush x:Key="StoppedBrush" Color="#6E7681" />
+    <SolidColorBrush x:Key="UnknownStatusBrush" Color="Transparent" />
+
     <x:Double x:Key="PageMaxWidth">1100</x:Double>
     <Thickness x:Key="PagePadding">40,28,40,40</Thickness>
 </ResourceDictionary>

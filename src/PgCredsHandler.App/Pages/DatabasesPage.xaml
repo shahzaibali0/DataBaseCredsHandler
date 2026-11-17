@@ -127,8 +127,12 @@
                                                 </ItemsRepeater.Layout>
                                                 <ItemsRepeater.ItemTemplate>
                                                     <DataTemplate x:DataType="pres:AppGroupViewModel">
-                                                        <Grid>
-                                                            <TextBlock Text="{x:Bind RoleLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                                        <Grid ToolTipService.ToolTip="{x:Bind ui:Badges.StatusText(RunState), Mode=OneWay}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                                                                         Fill="{x:Bind ui:Badges.StatusBrush(RunState), Mode=OneWay}" />
+                                                                <TextBlock Text="{x:Bind RoleLabel}" Style="{StaticResource FieldLabelStyle}" />
+                                                            </StackPanel>
                                                             <TextBlock Text="{x:Bind PortLabel}" Style="{StaticResource FieldValueStyle}" HorizontalAlignment="Right" />
                                                         </Grid>
                                                     </DataTemplate>

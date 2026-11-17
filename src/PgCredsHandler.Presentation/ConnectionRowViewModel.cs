@@ -76,6 +76,13 @@ public sealed partial class ConnectionRowViewModel : ObservableObject
 
     public bool HasPassword { get; }
 
+    /// <summary>Only a database on this PC (localhost) is checked; a remote server is never contacted.</summary>
+    public bool IsOnThisPc => HostKind == HostKind.Local;
+
+    /// <summary>Whether the database is accepting connections right now.</summary>
+    [ObservableProperty]
+    private RunState _runState;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DisplayPassword), nameof(RevealLabel))]
     private bool _isRevealed;
