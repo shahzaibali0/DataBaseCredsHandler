@@ -35,6 +35,21 @@ public static class PlaceholderValues
         || IsBracketedToken(database) || IsBracketedToken(username)
         || (DatabaseWords.Contains(database) && UserWords.Contains(username));
 
+    /// <summary>
+    /// True for a password that only says what to put there: YOUR_POSTGRES_PASSWORD, &lt;password&gt;, ${DB_PASSWORD},
+    /// changeme, ********. A short real password such as "postgres" or "password" is kept: many local setups use one.
+    /// </summary>
+    public static bool IsTemplatePassword(string? password)
+    {
+        if (string.IsNullOrWhiteSpace(password)) return false;
+        var value = password.Trim();
+        return value.StartsWith("your", StringComparison.OrdinalIgnoreCase)
+               || value.StartsWith("${", StringComparison.Ordinal)
+               || IsBracketedToken(value)
+               || value.All(character => character is '*' or 'x' or 'X')
+               || value.Replace("-", "").Replace("_", "").Equals("changeme", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsTemplateHost(string host) =>
         HostWords.Contains(host) || IsBracketedToken(host) || HasWordPort(host);
 

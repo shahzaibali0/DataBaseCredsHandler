@@ -64,6 +64,9 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 - Live status dots (running / not running) come from a 300 ms connect to the port on localhost only, every 15 seconds and after scans, because the owner wants to see at a glance which projects are up; only loopback is ever probed, so a remote or production server is never contacted, and the check lives in Integrations so `PrivacyTests` still guards everything else.
 
+- A .NET project's User Secrets file is read for its database connection strings, because that is where .NET keeps a dev connection string so it never reaches git; only the file named by the project's own `UserSecretsId` is opened, and only connection strings are taken (found when the owner's .NET project showed 0 databases).
+- `.env` files are read for libpq's own variable names (`PGHOST`, `PGUSER`…, no underscore) and for .NET's `ConnectionStrings__X=Host=…` form, and template passwords (`YOUR_…`, `<…>`, `changeme`) are not stored as passwords.
+
 _New decisions go here, one line each: the choice, then why._
 
 ## Open

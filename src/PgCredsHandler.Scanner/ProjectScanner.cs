@@ -16,16 +16,18 @@ public sealed record ScanFindings(
 /// web .csproj files).
 /// Fills in defaults (localhost / 5432 / postgres) for database parts a parser could not determine.
 /// </summary>
-public sealed class ProjectScanner
+public sealed partial class ProjectScanner
 {
     private readonly IReadOnlyList<IConfigParser> _parsers;
     private readonly ProjectWalker _walker;
     private readonly WorkspaceLocator _workspaces = new();
     private readonly Dictionary<string, bool> _npgsqlByProject = new(StringComparer.OrdinalIgnoreCase);
+    private readonly string _userSecretsRoot;
 
-    public ProjectScanner(AppSettings settings, IReadOnlyList<IConfigParser>? parsers = null)
+    public ProjectScanner(AppSettings settings, IReadOnlyList<IConfigParser>? parsers = null, string? userSecretsRoot = null)
     {
         _parsers = parsers ?? DefaultParsers.All;
+        _userSecretsRoot = userSecretsRoot ?? DefaultUserSecretsRoot();
         _walker = new ProjectWalker(settings.ExcludedFolderNames);
     }
 
@@ -43,6 +45,7 @@ public sealed class ProjectScanner
                 progress?.Report(new ScanProgress(file.FullPath, ++filesScanned, connections.Count));
 
                 connections.AddRange(ReadConnections(file));
+                connections.AddRange(ReadUserSecrets(file));
                 if (ReadApp(file, root) is { } app) apps.Add(app);
             }
         }
@@ -74,6 +77,46 @@ public sealed class ProjectScanner
             .OfType<DiscoveredConnection>()
             .ToList();
     }
+
+    /// <summary>Where .NET keeps User Secrets: %APPDATA%\Microsoft\UserSecrets.</summary>
+    public static string DefaultUserSecretsRoot() =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "UserSecrets");
+
+    /// <summary>
+    /// A .NET project often keeps its dev connection string in User Secrets, outside the project folder, so it never
+    /// reaches git. Only the secrets file named by this project's UserSecretsId is opened, and only database
+    /// connection strings are taken from it (the same rules as appsettings.json); every other value is ignored.
+    /// </summary>
+    private IEnumerable<DiscoveredConnection> ReadUserSecrets(FoundFile file)
+    {
+        if (!file.FileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)) return [];
+
+        string project;
+        try { project = File.ReadAllText(file.FullPath); }
+        catch (IOException) { return []; } // unreadable project file: nothing to follow
+
+        var secretsId = UserSecretsIdRegex().Match(project);
+        if (!secretsId.Success || secretsId.Groups[1].Value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return [];
+
+        var secretsFile = Path.Combine(_userSecretsRoot, secretsId.Groups[1].Value, "secrets.json");
+        if (!File.Exists(secretsFile)) return [];
+
+        var projectFolder = Path.GetDirectoryName(file.FullPath)!;
+        var context = new ParseContext
+        {
+            FilePath = secretsFile,
+            ProjectRoot = projectFolder,
+            ProjectUsesNpgsql = () => project.Contains("Npgsql", StringComparison.OrdinalIgnoreCase),
+        };
+        var secretsAsFound = new FoundFile(secretsFile, "secrets.json", projectFolder);
+        return new AppSettingsJsonParser().Parse(context)
+            .Select(credential => ToDiscovered(credential, secretsAsFound, "user secrets", isExample: false))
+            .OfType<DiscoveredConnection>()
+            .ToList();
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"<UserSecretsId>\s*([^<\s]+)\s*</UserSecretsId>")]
+    private static partial System.Text.RegularExpressions.Regex UserSecretsIdRegex();
 
     private DiscoveredApp? ReadApp(FoundFile file, string scanRoot)
     {
@@ -119,7 +162,7 @@ public sealed class ProjectScanner
             Port = parts.Port ?? 5432,
             Database = database,
             Username = username,
-            Password = parts.Password,
+            Password = PlaceholderValues.IsTemplatePassword(parts.Password) ? null : parts.Password,
         };
     }
 

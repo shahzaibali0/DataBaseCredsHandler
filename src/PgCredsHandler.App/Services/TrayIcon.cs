@@ -1,8 +1,6 @@
 using CommunityToolkit.Mvvm.Input;
 using H.NotifyIcon;
-using Microsoft.UI;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace PgCredsHandler.App.Services;
 
@@ -25,18 +23,13 @@ public sealed class TrayIcon : IDisposable
         _icon = new TaskbarIcon
         {
             ToolTipText = "PgCreds Handler: your projects and databases, on this PC only",
-            IconSource = new GeneratedIconSource
-            {
-                Text = "Pg",
-                FontSize = 46,
-                Foreground = new SolidColorBrush(Colors.White),
-                Background = new SolidColorBrush(ColorHelper.FromArgb(255, 0x33, 0x67, 0x91)),
-            },
             ContextFlyout = menu,
             ContextMenuMode = ContextMenuMode.SecondWindow,
             LeftClickCommand = new RelayCommand(actions.Show),
             NoLeftClickDelay = true,
         };
+        var appIcon = AppIconLoader.Load(large: false);
+        if (appIcon != IntPtr.Zero) _icon.Icon = System.Drawing.Icon.FromHandle(appIcon);
         _icon.ForceCreate();
     }
 

@@ -2,13 +2,20 @@ namespace PgCredsHandler.Storage;
 
 public static class Paths
 {
-    /// <summary>%APPDATA%\PgCredsHandler</summary>
+    /// <summary>
+    /// Environment variable that points the app at another data folder, e.g. to try it with demo projects
+    /// without touching your real list. Passwords still go to Windows Credential Manager.
+    /// </summary>
+    public const string DataFolderVariable = "PGCREDS_DATA_DIR";
+
+    /// <summary>%APPDATA%\PgCredsHandler, or the folder in <see cref="DataFolderVariable"/> when it is set.</summary>
     public static string DataFolder
     {
         get
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var folder = Path.Combine(appData, "PgCredsHandler");
+            var folder = Environment.GetEnvironmentVariable(DataFolderVariable) is { Length: > 0 } custom
+                ? custom
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "PgCredsHandler");
             Directory.CreateDirectory(folder);
             return folder;
         }

@@ -36,7 +36,16 @@ public static class EnvCredentialExtractor
                 results.Add(new ParsedCredential(key, parts));
         }
 
-        // 2) Discrete variables grouped by prefix.
+        // 2) .NET-style connection strings: ConnectionStrings__DefaultConnection=Host=...;Database=...
+        foreach (var (key, value) in vars)
+        {
+            if (!key.Contains("CONNECTIONSTRING", StringComparison.OrdinalIgnoreCase)) continue;
+            if (VariableExpander.HasUnresolved(value) || PostgresUrl.LooksLikePostgresUrl(value)) continue;
+            if (KeyValueConnectionString.TryParsePostgres(value, projectUsesNpgsql: false, out var parts))
+                results.Add(new ParsedCredential(key.Replace("__", ":"), parts));
+        }
+
+        // 3) Discrete variables grouped by prefix.
         foreach (var group in GroupByPrefix(vars))
         {
             var parts = BuildFromGroup(group.Value);
@@ -61,7 +70,8 @@ public static class EnvCredentialExtractor
             {
                 if (!key.EndsWith(suffix, StringComparison.Ordinal)) continue;
                 var prefix = key[..^suffix.Length];
-                if (prefix.Length > 0 && prefix[^1] != '_') continue; // must break on a word boundary
+                // Must break on a word boundary (DB_HOST), except libpq's own names, which have none (PGHOST, PGUSER).
+                if (prefix.Length > 0 && prefix[^1] != '_' && prefix != "PG") continue;
                 if (!IsRelevantPrefix(prefix)) continue;
 
                 if (!groups.TryGetValue(prefix, out var g))

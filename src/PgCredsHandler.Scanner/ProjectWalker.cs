@@ -86,7 +86,9 @@ public sealed class ProjectWalker
         {
             try
             {
-                if (ProjectMarkers.Any(m => File.Exists(Path.Combine(current, m)) || Directory.Exists(Path.Combine(current, m))))
+                // A .csproj also marks a project, so a .NET API's appsettings.json belongs to that API.
+                if (ProjectMarkers.Any(m => File.Exists(Path.Combine(current, m)) || Directory.Exists(Path.Combine(current, m)))
+                    || Directory.EnumerateFiles(current, "*.csproj").Any())
                     return current;
             }
             catch { /* ignore */ }

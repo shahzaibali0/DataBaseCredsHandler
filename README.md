@@ -1,136 +1,155 @@
+<div align="center">
+
+<img src="assets/logo.png" alt="PgCreds Handler logo" width="120" />
+
 # PgCreds Handler
 
-A free, open-source Windows app that finds the Postgres connection details scattered across your projects and keeps them in one safe place, on your own PC.
+**Every project on your PC, with its ports, database connections and stack, in one window.**
+<br />Private, offline and open source. Nothing ever leaves your PC.
 
-If you have many projects, each with its own database in a `.env`, `docker-compose.yml` or `appsettings.json`, you no longer have to dig through those files to find a host, port, database name, user and password. Opening a database in DBeaver or pgAdmin with one click is coming next.
+[![CI](https://github.com/shahzaibali0/DataBaseCredsHandler/actions/workflows/ci.yml/badge.svg)](https://github.com/shahzaibali0/DataBaseCredsHandler/actions/workflows/ci.yml)
+![Windows 10 & 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
+![.NET 8](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
+![WinUI 3](https://img.shields.io/badge/UI-WinUI%203-1B2F5E)
+[![License: MIT](https://img.shields.io/badge/License-MIT-2F7F72)](LICENSE)
 
-> **Status: early development.** Scanning works end to end: one button finds each project, its backend/frontend apps and local dev-server URLs, and its databases. Each database file opens to show the complete connection details. Opening a connection in DBeaver or pgAdmin is coming next. See the [Roadmap](#roadmap).
+<img src="assets/screenshots/projects.png" alt="The Projects page: one card per project with its stack and ports" width="860" />
 
-## How it works
+</div>
 
-1. **Start the app.** The first time, it shows one button: **Scan my PC for databases**.
-2. **Click it.** The app looks through your local drives, or only the folders you choose, for project config files. It skips Windows, Program Files, AppData, `node_modules`, `.git` and other non-project folders, and never touches USB or network drives. You see live progress and can cancel at any time; a cancelled scan changes nothing.
-3. **Open a project's files.** Frontend/Backend files show the detected framework and local URL/port. Separate Database files show host, port, database, username and the full password. Click **Rescan** whenever you like.
+---
 
-PgCreds Handler reads only database connection details and dev-server ports. It never reads, stores or shows unrelated `.env` or config values such as API keys, tokens or signing secrets.
+## ⚡ Install in one line
 
-## What it finds
+Open **PowerShell** and paste:
 
-- **`.env` files** (`.env`, `.env.local`, `.env.development`, …): `DATABASE_URL`-style URLs and groups like `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD`, including quoted and multi-line values and `${VAR}` / `${VAR:-default}` references.
-- **`docker-compose.yml`** Postgres services: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and the published port (`"5433:5432"` → `localhost:5433`).
-- **.NET `appsettings*.json`** connection strings.
+```powershell
+irm https://raw.githubusercontent.com/shahzaibali0/DataBaseCredsHandler/main/install.ps1 | iex
+```
 
-The same database found in several files of one project is shown once. Hosts that look like remote or production servers get a **red badge**, so you notice before you connect.
+That's it. The app is downloaded, added to your Start menu and opened. No admin rights, no .NET to install.
+Run the same line again any time to **update**.
 
-## Your data stays on your PC
+<details>
+<summary>Other ways to install</summary>
 
-**PgCreds Handler never sends your data anywhere.** It has no server, no account, no telemetry and no update check. What it finds is saved only on your own PC, in your own Windows account, and never in this repository.
+- **Download it:** get `PgCredsHandler.exe` from [Releases](https://github.com/shahzaibali0/DataBaseCredsHandler/releases) and double-click it.
+  Windows may show a SmartScreen warning because the file isn't code-signed yet: choose **More info → Run anyway**.
+- **From source:** `git clone https://github.com/shahzaibali0/DataBaseCredsHandler.git`, then double-click **`start.cmd`** in the folder.
+  Needs the [.NET SDK](https://dotnet.microsoft.com/download) 8 or newer.
 
-You don't have to take our word for it:
+</details>
 
-- The code that scans, stores and shows your data doesn't use any networking library, and an automated test ([`PrivacyTests.cs`](tests/PgCredsHandler.Tests/PrivacyTests.cs)) fails the build if it ever does. The only network connections will come from the upcoming database-client features, and only to a database you click to test or open.
-- It's open source: search the code for `HttpClient` or `Socket` and see for yourself.
-- The app always shows where your data is, with an **Open data folder** button.
+---
 
-Where things are kept:
+## 🤔 Why
+
+You have many projects, each with its own database and dev servers, and the details are buried in `.env`, `docker-compose.yml` and `appsettings.json` files. Every time you open one in DBeaver or pgAdmin, you dig through files for the host, port, user and password.
+
+PgCreds Handler finds all of it for you, once, and keeps it one click away.
+
+## ✨ Features
+
+| | |
+|---|---|
+| 🔍 **One-click scan** | Looks through your drives (or the folders you choose) and skips Windows, Program Files, `node_modules`, `.git` and other non-project folders. |
+| 🗂️ **One card per project** | Each git repository becomes a card with its backend, frontend and databases. |
+| 🟢 **Live status** | A green dot shows which dev servers and local databases are running right now. |
+| 🔌 **Ports** | Every app's local address (`http://localhost:3001`) with an **Open** button, read from its dev script, `.env` or `launchSettings.json`. |
+| 🐘 **Database connections** | Host, port, database, user and password (masked, with 👁 to show and a Copy button). |
+| 🚀 **Open in your DB tool** | **DBeaver** opens already connected, **pgAdmin** gets the server added for you, **DbVisualizer** opens with the URL copied. Buttons light up only for tools you have installed. |
+| 🧱 **Stack & key packages** | Next.js 16 · React 19 · TypeScript, or ASP.NET Core · .NET 8, plus the important packages by purpose (database, auth, payments, UI…). |
+| 🔒 **Stays on your PC** | Passwords live in Windows Credential Manager, never in a file. No account, no server, no telemetry. |
+| 🪟 **Always there** | Lives in the system tray, starts with Windows, rescans quietly in the background. |
+
+<div align="center">
+<img src="assets/screenshots/project-window.png" alt="A project's window: ports, database connection, stack and key packages" width="860" />
+</div>
+
+## 📁 What it reads
+
+- **`.env` files**: `DATABASE_URL`-style URLs and `DB_HOST` / `DB_PORT` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` groups, including `${VAR}` references.
+- **`docker-compose.yml`**: Postgres services, with the published port (`"5433:5432"` → `localhost:5433`).
+- **`appsettings*.json` and .NET User Secrets**: .NET connection strings, including the dev connection string kept in User Secrets (`%APPDATA%\Microsoft\UserSecrets`) for projects that use them. Only connection strings are read.
+- **`package.json` and `.csproj`**: the framework, dev-server port and package names, for the stack.
+
+It reads **only** database connection details, ports and package names. It never reads or stores other secrets from your `.env` files (API keys, tokens). Template values in example files (`USER@HOST:PORT/DATABASE`) are ignored.
+
+## 🔒 Your data stays on your PC
+
+**PgCreds Handler never sends your data anywhere.** It has no server, no account, no telemetry and no update check.
 
 | What | Where |
 | --- | --- |
-| Connection details (no passwords) | `%APPDATA%\PgCredsHandler\connections.json` |
-| Projects, apps and local URLs | `%APPDATA%\PgCredsHandler\inventory.json` |
-| Settings (folders to scan and background preferences) | `%APPDATA%\PgCredsHandler\settings.json` |
-| Passwords | Windows Credential Manager, entries named `PgCredsHandler:<id>`. Never in a file. |
+| Projects and connection details (no passwords) | `%APPDATA%\PgCredsHandler\` |
+| Passwords | Windows Credential Manager (`PgCredsHandler:<id>`), never in a file |
 
-`%APPDATA%` is usually `C:\Users\<you>\AppData\Roaming`; paste it into File Explorer's address bar to open it. The folder is created the first time the app runs.
+Check it yourself:
 
-Your data is also protected from the app itself:
+- ✅ An automated test ([`PrivacyTests.cs`](tests/PgCredsHandler.Tests/PrivacyTests.cs)) fails the build if the code that scans, stores or shows your data ever uses a networking library.
+- ✅ The only connections the app makes are to **your own PC** (`localhost`) to see whether a server is running, and to a database **you** open in a DB tool. A remote server is never contacted for status.
+- ✅ It's open source: search the code for `HttpClient` or `Socket`.
 
-- **Rescans never delete.** A database that's no longer found is marked **No longer found**, not removed.
-- **A damaged data file is never overwritten.** If `connections.json` or `settings.json` can't be read, the app saves a copy next to it (`….corrupt-<date>`), tells you, and saves nothing until you fix or delete the file.
+<details>
+<summary>🧹 Uninstall or start over</summary>
 
-### Start over or uninstall
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/shahzaibali0/DataBaseCredsHandler/main/install.ps1))) -Uninstall
+```
 
-1. Close the app.
-2. Delete the folder `%APPDATA%\PgCredsHandler`.
-3. Open **Credential Manager** (Start → "Credential Manager") → **Windows Credentials**, and remove the entries starting with `PgCredsHandler:`.
-4. If you downloaded the `.exe`, delete it. The app installs nothing else.
+That removes the app, its Start menu shortcut and its startup entry. To also delete your saved list:
 
-## Get started
+1. Delete the folder `%APPDATA%\PgCredsHandler`.
+2. Open **Credential Manager** → **Windows Credentials** and remove the entries starting with `PgCredsHandler:`.
 
-### Download (easiest)
+</details>
 
-Once the first release is published, get `PgCredsHandler.exe` from the [Releases](https://github.com/shahzaibali0/DataBaseCredsHandler/releases) page and double-click it. Nothing to install, no .NET needed.
+## 🗺️ Roadmap
 
-Windows may show a SmartScreen warning because the file isn't code-signed yet: choose **More info → Run anyway**.
+- [x] One-click scan, projects grid, project window
+- [x] Ports, live status, stack and key packages
+- [x] Open in DBeaver / pgAdmin / DbVisualizer
+- [x] Tray, start with Windows, one-line install
+- [ ] MySQL, SQL Server and MongoDB, not just Postgres
+- [ ] Django, Laravel, Rails, Prisma and Spring config files
+- [ ] Open a project in VS Code, Explorer or a terminal; show its git branch
+- [ ] Pin favourite projects
 
-### Run from the source code
+## 🤝 Contributing
 
-You need Windows 10 (version 2004 or later) or Windows 11, and the [.NET SDK](https://dotnet.microsoft.com/download) 8.0 or newer.
+Issues and pull requests are welcome.
 
 ```powershell
 git clone https://github.com/shahzaibali0/DataBaseCredsHandler.git
 cd DataBaseCredsHandler
-.\start.cmd
+git config core.hooksPath .githooks   # turns on the privacy check
+dotnet test                           # 100+ tests
+.\start.cmd                           # build and run
 ```
 
-`start.cmd` checks that the .NET SDK is installed, builds the app and starts it. You can also double-click it in File Explorer. Prefer the command line? `dotnet run --project src/PgCredsHandler.App` does the same. Visual Studio 2022 and VS Code (with C# Dev Kit) work too: run the `PgCredsHandler.App` project.
-
-### Optional
-
-- [DBeaver](https://dbeaver.io/) or [pgAdmin](https://www.pgadmin.org/), to open a database with one click.
-
-## Roadmap
-
-- [x] One-button scan of the whole PC (or chosen folders), with progress and cancel
-- [x] Project hierarchy with clickable Frontend/Backend files showing local URLs and ports
-- [x] Separate Database files with complete connection details and remote-host warnings
-- [x] Single instance, notification-area mode, start with Windows and quiet startup rescan
-- [x] Damaged data files backed up, never overwritten
-- [ ] One-click connect: open a database in DBeaver or pgAdmin with everything filled in, test a connection, copy as URL / JDBC / ADO.NET
-- [ ] Settings, add/edit and delete (edited entries are never overwritten by a rescan; deleted ones never come back)
-- [ ] More config formats: Django `settings.py`, Rails `database.yml`, Prisma, Spring
-
-## Contributing
-
-Issues and pull requests are welcome.
-
-**Project layout**
+<details>
+<summary>Project layout and rules</summary>
 
 ```
 src/
   PgCredsHandler.Core          models, parsing helpers, merge rules (no file or network access)
-  PgCredsHandler.Scanner       finds config files and reads credentials out of them; the scan workflow
+  PgCredsHandler.Scanner       finds config files and reads connections, apps, ports and stack
   PgCredsHandler.Storage       the JSON data files and Windows Credential Manager
-  PgCredsHandler.Integrations  DBeaver, pgAdmin and connection test (in progress)
+  PgCredsHandler.Integrations  DBeaver, pgAdmin, DbVisualizer and the localhost status check
   PgCredsHandler.Presentation  what each screen shows and does (viewmodels), tested without a window
   PgCredsHandler.App           the WinUI 3 window and pages
 tests/
   PgCredsHandler.Tests         xunit tests
 ```
 
-**Built with** WinUI 3 (Windows App SDK) on .NET 8, CommunityToolkit.Mvvm, CommunityToolkit.WinUI controls and WinUIEx. The app is unpackaged and ships as one self-contained `.exe`.
+- **Built with** WinUI 3 (Windows App SDK) on .NET 8, CommunityToolkit.Mvvm, CommunityToolkit.WinUI and WinUIEx. Ships as one self-contained `.exe`.
+- **Never commit real data:** no credentials, no `.env` files, no `connections.json`. The privacy check blocks the app's data files, real `.env` files, and any line containing a project name, path, database or host that PgCreds Handler found on your PC.
+- **Try it with demo data:** set `PGCREDS_DATA_DIR` to another folder before starting the app, so your real list isn't touched.
+- **Design rules, coding style and decisions** are in [.agents/](.agents/README.md). They're written for AI coding agents and work just as well for people.
+- **Publishing a release** (maintainers): push a tag such as `v0.1.0`. GitHub Actions builds `PgCredsHandler.exe` and attaches it to the release.
 
-**Build and test**
+</details>
 
-```powershell
-dotnet build PgCredsHandler.sln
-dotnet test
-```
-
-Every push and pull request is built and tested on GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)).
-
-**Ground rules**
-
-- Never commit real credentials, `.env` files or your `connections.json` / `settings.json`. `.gitignore` blocks the usual names, but check your diff.
-- Turn on the privacy check once per clone: `git config core.hooksPath .githooks`. Before every commit it blocks the app's data files, real `.env` files, and any added line containing a project name, path, database or host that PgCreds Handler found on your PC (read from your own app data at commit time, never stored in the repo).
-- Keep the privacy promise: no networking outside `PgCredsHandler.Integrations`. `PrivacyTests` will fail if you add any.
-- The design rules, coding style and decisions are in [.agents/](.agents/README.md). They're written for AI coding agents and work just as well for people. Start with [.agents/rules/project/overview.md](.agents/rules/project/overview.md).
-- Contributing with an AI coding agent on Windows: turn on **Developer Mode** and clone with `git clone -c core.symlinks=true …`, so the `.claude/` links into `.agents/` work. Building and running the app doesn't need this.
-
-**Publishing a release** (maintainers)
-
-Push a version tag, for example `git tag v0.1.0` then `git push origin v0.1.0`. GitHub Actions ([`release.yml`](.github/workflows/release.yml)) runs the tests, builds the single-file `PgCredsHandler.exe` and attaches it to a new release.
-
-## License
+## 📄 License
 
 [MIT](LICENSE)

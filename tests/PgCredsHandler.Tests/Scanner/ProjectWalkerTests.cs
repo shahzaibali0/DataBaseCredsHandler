@@ -34,6 +34,16 @@ public sealed class ProjectWalkerTests : IDisposable
     }
 
     [Fact]
+    public void Walk_AppSettingsBesideACsproj_BelongsToThatDotNetProject()
+    {
+        Directory.CreateDirectory(_root.Combine("crm", ".git"));
+        _root.WriteFile("crm/Crm.Api/Crm.Api.csproj", "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />");
+        _root.WriteFile("crm/Crm.Api/.env", "DB_HOST=localhost");
+
+        Assert.Equal(_root.Combine("crm", "Crm.Api"), Assert.Single(Walk()).ProjectRoot);
+    }
+
+    [Fact]
     public void Walk_NoProjectMarker_UsesTheFilesOwnFolder()
     {
         _root.WriteFile("loose/.env", "DB_HOST=localhost");

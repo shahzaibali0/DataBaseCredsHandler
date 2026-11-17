@@ -36,6 +36,8 @@ public sealed partial class MainWindow : Window
         _exitApp = exitApp;
         InitializeComponent();
 
+        var appIcon = Services.AppIconLoader.Load(large: true);
+        if (appIcon != IntPtr.Zero) AppWindow.SetIcon(Microsoft.UI.Win32Interop.GetIconIdFromIcon(appIcon));
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
 
