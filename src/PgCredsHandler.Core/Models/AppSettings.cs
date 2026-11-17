@@ -11,19 +11,14 @@ public sealed class AppSettings
     /// <summary>Full path to dbeaver.exe. Empty = auto-detect.</summary>
     public string? DbeaverPath { get; set; }
 
-    /// <summary>Ask for Windows Hello before revealing or copying a password.</summary>
-    public bool RequireWindowsHello { get; set; } = true;
-
-    /// <summary>After a successful Windows Hello check, stay unlocked this long.</summary>
-    public int UnlockMinutes { get; set; } = 5;
-
-    /// <summary>A revealed password hides itself again after this many seconds.</summary>
-    public int RevealSeconds { get; set; } = 30;
-
-    /// <summary>A copied password is cleared from the clipboard after this many seconds.</summary>
-    public int ClipboardClearSeconds { get; set; } = 30;
-
+    /// <summary>Rescan quietly when the app starts, once the user has scanned at least once.</summary>
     public bool ScanOnStartup { get; set; } = true;
+
+    /// <summary>Start in the tray when Windows starts, so the list is always one click away.</summary>
+    public bool StartWithWindows { get; set; } = true;
+
+    /// <summary>Closing the window keeps the app running in the tray instead of quitting.</summary>
+    public bool KeepRunningInTray { get; set; } = true;
 
     /// <summary>Folder names the scanner never enters.</summary>
     public List<string> ExcludedFolderNames { get; set; } = DefaultExcludedFolders();

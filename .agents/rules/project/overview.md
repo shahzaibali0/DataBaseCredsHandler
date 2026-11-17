@@ -12,7 +12,7 @@ It is a personal password manager for databases that discovers its own entries. 
 
 Two failures defeat the point of the tool. Be careful wherever they can happen:
 
-- **A password leaks.** Passwords live only in Windows Credential Manager. They never reach `connections.json`, `settings.json`, a pgAdmin export, a log, an exception message, a `ToString()`, a tooltip or a list binding. Before adding any code that touches a password, say where the value goes and when it leaves memory. Skill: `credential-safety`.
+- **A password leaks outside its intended screen.** Passwords live only in Windows Credential Manager at rest. They never reach `connections.json`, `settings.json`, a pgAdmin export, a log, an exception message, a `ToString()`, a tooltip or search. The expanded Database file deliberately binds the full password because the owner wants it visible. Before adding any code that touches a password, say where the value goes and when it leaves memory. Skill: `credential-safety`.
 - **A scan destroys the user's data.** Scans are additive. A manual entry is never overwritten, a connection that disappears is marked `IsStale`, never deleted, and a connection the user deleted stays deleted (`HiddenFingerprints`). Before changing `ConnectionMerger`, the repositories or the delete flow, say what happens to a manual entry, a stale entry and a hidden one. Skill: `scan-and-merge`.
 
 ## Commands
@@ -49,13 +49,14 @@ Dependencies point inward: everything may reference Core; Scanner, Storage and I
 
 ## Constraints
 
+- The app reads only database connection details, dev-server ports, and the package names in `package.json` / `.csproj` (to show the stack and key packages). It never reads, stores or shows other values from `.env` or config files (API keys, tokens, secrets).
 - **Passwords never touch JSON.** `SavedConnection` has no password field and must never get one. The password is written with `ICredentialStore.Save(connectionId, username, password)` under the target `PgCredsHandler:{connectionId}` and read back with `Read(connectionId)` at the moment it is needed.
 - `InMemoryCredentialStore` exists only so non-Windows builds and tests work. Never use it as a fallback on Windows; if Credential Manager fails, the operation fails visibly.
 - `DiscoveredConnection` is the only type that carries a password in a field, and only between the scanner and `ConnectionMerger`. `MergeResult.PasswordWrites` hands those passwords to the caller, who writes them to the credential store and drops the list.
 - **Connection identity** is `ConnectionKey.Create(projectPath, host, port, database, username)` (`Fingerprint`). Do not add fields to it: a changed identity orphans stored passwords and resurrects hidden entries.
 - **Scans are additive.** Only `ConnectionMerger.Merge` decides what a scan changes. Manual entries (`IsManual`) are never touched; missing ones become `IsStale` only if under a scanned root; a changed password sets `PasswordChangedAt`; `HiddenFingerprints` are skipped.
 - **Deleting a scanned entry** removes its credential and adds its `Fingerprint` to `AppSettings.HiddenFingerprints` in the same user action. Deleting a manual entry just removes it and its credential.
-- **Reveal and copy are gated.** Masked by default. With `RequireWindowsHello`, a Windows Hello check (`UserConsentVerifier`) unlocks for `UnlockMinutes` (5). A revealed password hides after `RevealSeconds` (30). A copied password is cleared after `ClipboardClearSeconds` (30), only if the clipboard still holds that value. These numbers are `AppSettings`, not constants.
+- **Database files show complete credentials.** Opening a Database file shows host, port, database, username and the full password without masking or Windows Hello. The password is read from Credential Manager only while that file is open, then cleared when it collapses, the page changes, a rescan replaces rows, or the window hides. It must never be added to search, tooltips, JSON, logs or exception messages.
 - **Scanner scope:** the user's `ScanRoots`, or, when none are chosen (the default), every fixed local drive from `LocalDrives.ListFixedDriveRoots` (USB, network and CD drives never). `ExcludedFolderNames`, dot-folders and `$`-folders are skipped; junctions and symlinks are not followed; depth is capped (12). Never read `%APPDATA%` or system folders. A scan only starts when the user presses the button.
 - **Host safety:** every connection shows its `HostClassifier` kind. `Remote` is red and must be visible before the user connects.
 - A malformed config file is skipped quietly. One bad file never stops a scan.
@@ -73,13 +74,13 @@ One word per concept across code, UI text and these instructions.
 - **Manual entry**: a connection the user added or edited by hand (`IsManual`). Scans never change it.
 - **Stale**: the last scan of its root did not find it (`IsStale`). It is kept, shown dimmed, and can be deleted by the user.
 - **Hidden**: a scanned connection the user deleted; its fingerprint is in `HiddenFingerprints`.
-- **Reveal** shows a password on screen; **copy** puts it on the clipboard; **unlock** is the Windows Hello check that permits both for `UnlockMinutes`.
+- **Database file**: the clickable project entry that expands to show every connection value, including the full password.
 - **Host kind**: `Local`, `DockerService`, `Private`, `Remote` (`HostClassifier`). Not "environment" or "prod/dev".
 - **Source**: the file a connection came from (`SourceFile`), its format (`SourceKind`: `.env`, `docker-compose`, `appsettings.json`) and the key inside it (`SourceKey`).
 
 ## Before calling it done
 
-Run `dotnet build PgCredsHandler.sln` (0 errors, 0 warnings) and `dotnet test`, and say what passed. For App changes, also launch the app and confirm it starts and the window title is "PgCreds Handler". Say plainly what you could not exercise (a Windows Hello prompt, a DBeaver that is not installed). After touching Storage, Integrations or any password flow, run the `secrets-reviewer` agent.
+Run `dotnet build PgCredsHandler.sln` (0 errors, 0 warnings) and `dotnet test`, and say what passed. For App changes, also launch the app and confirm it starts and the window title is "PgCreds Handler". Say plainly what you could not exercise (for example, a DBeaver that is not installed). After touching Storage, Integrations or any password flow, run the `secrets-reviewer` agent.
 
 ## Build order (what's left)
 
@@ -88,7 +89,7 @@ Done: the scan module (first-run screen, one-button whole-PC scan with progress 
 1. **Enforce the rules in the build**: `.editorconfig`, analyzers, warnings as errors.
 2. **Parser tests**: `PostgresUrl`, `KeyValueConnectionString`, `EnvFileParser`, `DockerComposeParser`, `AppSettingsJsonParser`, `HostClassifier`. Skill: `xunit-testing`.
 3. **Integrations, then auto-connect**: `ConnectionStringBuilder`, `ConnectionTester`, `DbeaverLauncher`, `PgAdminExporter`, then one-click "Open in DBeaver / pgAdmin" from a row. Skill: `db-client-integrations`.
-4. **Password flows**: reveal/copy with Windows Hello. Skills: `credential-safety`, `desktop-ui`.
+4. **Password display**: complete credentials in an expandable Database file. Skills: `credential-safety`, `desktop-ui`.
 5. **Settings and editing**: settings page, add/edit dialog, delete with hidden fingerprints.
 6. Later: more parsers (Django `settings.py`, Rails `database.yml`, Prisma, Spring), rescan on file change.
 
@@ -98,7 +99,8 @@ Public repository: `https://github.com/shahzaibali0/DataBaseCredsHandler`, defau
 
 - Commit only when asked. Never `--no-verify`.
 - Never commit user data: `connections.json`, `settings.json`, exports, a real `.env`, or any credential used for manual testing. The app keeps data in `%APPDATA%\PgCredsHandler\`, outside the repo; `.gitignore` is a safety net, not the plan.
-- No personal paths, names or machine details in code, docs or tests. Use `C:\Users\you\Projects`-style examples.
+- No personal paths, names or machine details in code, docs or tests: never the owner's real project, database or folder names. Use made-up examples (`ShopRepo`, `shop_db`, `C:\Users\you\Projects`).
+- `.githooks/pre-commit` (enabled with `git config core.hooksPath .githooks`) enforces this: it blocks app data files, real `.env` files, and added lines containing anything from the owner's `%APPDATA%\PgCredsHandler` data. Never bypass it with `--no-verify`.
 - `.claude/rules`, `.claude/skills/*` and `.claude/agents` are committed as relative symlinks into `.agents/`. Keep them symlinks (git mode `120000`), never copies or junctions. Creating one on Windows needs Developer Mode and `git config core.symlinks true`.
 
 ## Compact instructions

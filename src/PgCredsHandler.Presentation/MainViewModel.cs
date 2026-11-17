@@ -3,56 +3,49 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using PgCredsHandler.Core.Abstractions;
 using PgCredsHandler.Core.Models;
-using PgCredsHandler.Core.Util;
 using PgCredsHandler.Scanner;
 
 namespace PgCredsHandler.Presentation;
 
 /// <summary>
-/// State and commands for every page: the first-run welcome, the scan with progress and cancel,
-/// the databases grouped by project with search and filter, and the folders to scan.
+/// The Databases page: first-run welcome, the scan with progress and cancel, and everything found arranged as
+/// Project → Frontend/Backend files and Database files, with search and complete connection details.
+/// Settings live in MainViewModel.Settings.cs.
 /// </summary>
 public sealed partial class MainViewModel : ObservableObject
 {
-    /// <summary>Filter positions, in the order the segmented control shows them.</summary>
-    public const int ShowAll = 0;
-    public const int ShowOnThisPc = 1;
-    public const int ShowOnNetwork = 2;
+    private readonly AppServices _services;
+    private IReadOnlyList<SavedApp> _apps = [];
+    private IReadOnlyList<ConnectionRowViewModel> _databases = [];
 
-    private readonly ScanWorkflow _scanWorkflow;
-    private readonly DataStores _stores;
-    private readonly IDesktopShell _shell;
-    private IReadOnlyList<ConnectionRowViewModel> _allRows = [];
-
-    public MainViewModel(ScanWorkflow scanWorkflow, DataStores stores, IDesktopShell shell)
+    public MainViewModel(AppServices services)
     {
-        _scanWorkflow = scanWorkflow;
-        _stores = stores;
-        _shell = shell;
+        _services = services;
+        _services.Databases.Notice += ShowNotice;
     }
 
-    public ObservableCollection<ProjectGroupViewModel> Groups { get; } = [];
+    public ObservableCollection<WorkspaceViewModel> Workspaces { get; } = [];
 
-    public ObservableCollection<string> ChosenFolders { get; } = [];
+    public string DataFolderPath => _services.Shell.DataFolderPath;
 
-    public string DataFolderPath => _shell.DataFolderPath;
-
-    public bool ShowWelcome => !HasConnections && !IsScanning;
+    public bool ShowWelcome => !HasData && !IsScanning;
 
     public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowWelcome))]
-    private bool _hasConnections;
+    public bool HasStatus => !string.IsNullOrEmpty(StatusMessage);
 
     [ObservableProperty]
-    private int _databaseCount;
+    [NotifyPropertyChangedFor(nameof(ShowWelcome))]
+    private bool _hasData;
 
     [ObservableProperty]
     private int _projectCount;
 
     [ObservableProperty]
-    private int _remoteCount;
+    private int _appCount;
+
+    [ObservableProperty]
+    private int _databaseCount;
 
     [ObservableProperty]
     private bool _hasNoMatches;
@@ -74,14 +67,12 @@ public sealed partial class MainViewModel : ObservableObject
     private string _summary = "";
 
     [ObservableProperty]
-    private string _scanScope = "";
-
-    [ObservableProperty]
-    private bool _hasChosenFolders;
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     private string? _errorMessage;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasStatus))]
+    private string? _statusMessage;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ScanCommand), nameof(ChooseFolderCommand), nameof(AddFolderCommand),
@@ -91,19 +82,27 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private string _searchText = "";
 
+    /// <summary>The project whose detail window is open, or null.</summary>
     [ObservableProperty]
-    private int _hostFilterIndex = ShowAll;
+    [NotifyPropertyChangedFor(nameof(IsProjectOpen))]
+    private WorkspaceViewModel? _selectedProject;
 
-    /// <summary>Loads the saved list and the scan scope. Called once at startup.</summary>
+    public bool IsProjectOpen => SelectedProject is not null;
+
+    /// <summary>Loads what is saved and the settings. Called once at startup.</summary>
     public void Load() => RunGuarded(() =>
     {
-        ShowConnections(_stores.Connections.GetAll());
-        DescribeScope();
+        ShowSaved();
+        LoadSettings();
     });
 
-    partial void OnSearchTextChanged(string value) => ApplyFilter();
+    /// <summary>Masks and forgets every shown password; used when the window hides and before a rescan replaces rows.</summary>
+    public void HideAllPasswords()
+    {
+        foreach (var database in _databases) database.Hide();
+    }
 
-    partial void OnHostFilterIndexChanged(int value) => ApplyFilter();
+    partial void OnSearchTextChanged(string value) => ApplyFilter();
 
     private bool CanChangeData() => !IsDataUnreadable;
 
@@ -115,8 +114,8 @@ public sealed partial class MainViewModel : ObservableObject
         var progress = new Progress<ScanProgress>(ShowProgress);
         try
         {
-            var summary = await Task.Run(() => _scanWorkflow.ScanAndSave(progress, cancellationToken), cancellationToken);
-            ShowConnections(_stores.Connections.GetAll());
+            var summary = await Task.Run(() => _services.ScanWorkflow.ScanAndSave(progress, cancellationToken), cancellationToken);
+            ShowSaved();
             Summary = DescribeSummary(summary);
         }
         catch (OperationCanceledException)
@@ -137,44 +136,28 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>"Choose a folder instead": scan only the picked folder, now.</summary>
-    [RelayCommand(CanExecute = nameof(CanChangeData))]
-    private async Task ChooseFolderAsync()
-    {
-        var folder = await _shell.PickFolderAsync();
-        if (folder is null) return;
-
-        SaveScanRoots([folder]);
-        await ScanCommand.ExecuteAsync(null);
-    }
-
-    /// <summary>Settings: add a folder to the list of folders to scan.</summary>
-    [RelayCommand(CanExecute = nameof(CanChangeData))]
-    private async Task AddFolderAsync()
-    {
-        var folder = await _shell.PickFolderAsync();
-        if (folder is null || ChosenFolders.Contains(folder, StringComparer.OrdinalIgnoreCase)) return;
-
-        SaveScanRoots([.. ChosenFolders, folder]);
-    }
-
-    [RelayCommand(CanExecute = nameof(CanChangeData))]
-    private void RemoveFolder(string folder) =>
-        SaveScanRoots(ChosenFolders.Where(chosen => !chosen.Equals(folder, StringComparison.OrdinalIgnoreCase)).ToList());
-
-    [RelayCommand(CanExecute = nameof(CanChangeData))]
-    private void UseAllDrives() => SaveScanRoots([]);
+    [RelayCommand]
+    private void OpenDataFolder() => _services.Shell.OpenFolder(DataFolderPath);
 
     [RelayCommand]
-    private void OpenDataFolder() => _shell.OpenFolder(DataFolderPath);
+    private void OpenLocalUrl(string url) => _services.Shell.OpenUrl(url);
 
-    private void SaveScanRoots(IReadOnlyList<string> folders) => RunGuarded(() =>
+    [RelayCommand]
+    private void DismissStatus() => StatusMessage = null;
+
+    [RelayCommand]
+    private void OpenProject(WorkspaceViewModel project)
     {
-        var settings = _stores.Settings.Load();
-        settings.ScanRoots = folders.ToList();
-        _stores.Settings.Save(settings);
-        DescribeScope();
-    });
+        _services.Databases.RefreshInstalledTools();
+        SelectedProject = project;
+    }
+
+    [RelayCommand]
+    private void CloseProject()
+    {
+        SelectedProject?.HidePasswords();
+        SelectedProject = null;
+    }
 
     private void RunGuarded(Action action)
     {
@@ -182,48 +165,35 @@ public sealed partial class MainViewModel : ObservableObject
         catch (DataFileUnreadableException exception) { ShowUnreadableData(exception); }
     }
 
-    private void ShowConnections(IEnumerable<SavedConnection> saved)
+    private void ShowSaved()
     {
-        _allRows = saved.Select(ConnectionRowViewModel.From).ToList();
-        HasConnections = _allRows.Count > 0;
-        DatabaseCount = _allRows.Count;
-        ProjectCount = _allRows.Select(row => row.ProjectPath).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        RemoteCount = _allRows.Count(row => row.HostKind == HostKind.Remote);
+        HideAllPasswords();
+        var openProjectPath = SelectedProject?.Path;
+        var inventory = _services.Stores.Inventory.Load();
+        _apps = inventory.Apps;
+        _databases = _services.Stores.Connections.GetAll()
+            .Select(saved => ConnectionRowViewModel.From(saved, _services.Databases)).ToList();
+        HasData = _apps.Count + _databases.Count > 0;
         ApplyFilter();
+        CountEverything();
+        SelectedProject = Workspaces.FirstOrDefault(project => project.Path == openProjectPath);
     }
 
     private void ApplyFilter()
     {
-        var visibleGroups = _allRows
-            .Where(row => row.Matches(SearchText) && MatchesHostFilter(row))
-            .GroupBy(row => row.ProjectPath, StringComparer.OrdinalIgnoreCase)
-            .Select(ToProjectGroup)
-            .OrderBy(group => group.ProjectName, StringComparer.OrdinalIgnoreCase);
-
-        Groups.Clear();
-        foreach (var group in visibleGroups) Groups.Add(group);
-        HasNoMatches = HasConnections && Groups.Count == 0;
+        var workspaces = WorkspaceBuilder.Build(
+            new WorkspaceSources(_apps, _databases), new WorkspaceFilter(SearchText));
+        Workspaces.Clear();
+        foreach (var workspace in workspaces) Workspaces.Add(workspace);
+        HasNoMatches = HasData && Workspaces.Count == 0;
     }
 
-    private bool MatchesHostFilter(ConnectionRowViewModel row) => HostFilterIndex switch
+    private void CountEverything()
     {
-        ShowOnThisPc => row.IsOnThisPc,
-        ShowOnNetwork => !row.IsOnThisPc,
-        _ => true,
-    };
-
-    private static ProjectGroupViewModel ToProjectGroup(IGrouping<string, ConnectionRowViewModel> rows) =>
-        new(rows.First().ProjectName, rows.Key, rows.OrderBy(row => row.Database, StringComparer.OrdinalIgnoreCase).ToList());
-
-    private void DescribeScope()
-    {
-        var chosen = _stores.Settings.Load().ScanRoots;
-        ChosenFolders.Clear();
-        foreach (var folder in chosen) ChosenFolders.Add(folder);
-        HasChosenFolders = chosen.Count > 0;
-
-        var roots = string.Join(", ", _scanWorkflow.ListScanRoots());
-        ScanScope = HasChosenFolders ? $"Scans the folders you chose: {roots}" : $"Scans all local drives ({roots})";
+        var everything = WorkspaceBuilder.Build(new WorkspaceSources(_apps, _databases), new WorkspaceFilter(""));
+        ProjectCount = everything.Count;
+        AppCount = everything.Sum(workspace => workspace.Apps.Count);
+        DatabaseCount = _databases.Count;
     }
 
     private void StartProgress()
@@ -241,6 +211,12 @@ public sealed partial class MainViewModel : ObservableObject
         CurrentFile = progress.CurrentFile;
     }
 
+    private void ShowNotice(string message, bool isProblem)
+    {
+        if (isProblem) ErrorMessage = message;
+        else StatusMessage = message;
+    }
+
     private void ShowUnreadableData(DataFileUnreadableException exception)
     {
         IsDataUnreadable = true;
@@ -251,7 +227,8 @@ public sealed partial class MainViewModel : ObservableObject
     private static string DescribeSummary(ScanSummary summary)
     {
         var databases = summary.Found == 1 ? "1 database" : $"{summary.Found} databases";
-        return $"Last scan found {databases}: {summary.Added} new, {summary.PasswordsChanged} password changes, "
+        return $"Last scan found {summary.AppsFound} apps and {databases}: "
+               + $"{summary.Added} new, {summary.PasswordsChanged} password changes, "
                + $"{summary.MarkedStale} no longer found.";
     }
 }

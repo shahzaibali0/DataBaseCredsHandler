@@ -37,7 +37,7 @@
             OpenPaneLength="232"
             SelectionChanged="OnNavigationSelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Databases" Tag="Databases">
+                <NavigationViewItem Content="Projects" Tag="Databases">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8F1;" />
                     </NavigationViewItem.Icon>

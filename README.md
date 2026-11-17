@@ -4,13 +4,15 @@ A free, open-source Windows app that finds the Postgres connection details scatt
 
 If you have many projects, each with its own database in a `.env`, `docker-compose.yml` or `appsettings.json`, you no longer have to dig through those files to find a host, port, database name, user and password. Opening a database in DBeaver or pgAdmin with one click is coming next.
 
-> **Status: early development.** Scanning works end to end: one button finds the databases on your PC, saves them securely and lists them by project. Opening a connection in DBeaver or pgAdmin and showing/copying passwords are being built next. See the [Roadmap](#roadmap).
+> **Status: early development.** Scanning works end to end: one button finds each project, its backend/frontend apps and local dev-server URLs, and its databases. Each database file opens to show the complete connection details. Opening a connection in DBeaver or pgAdmin is coming next. See the [Roadmap](#roadmap).
 
 ## How it works
 
 1. **Start the app.** The first time, it shows one button: **Scan my PC for databases**.
 2. **Click it.** The app looks through your local drives, or only the folders you choose, for project config files. It skips Windows, Program Files, AppData, `node_modules`, `.git` and other non-project folders, and never touches USB or network drives. You see live progress and can cancel at any time; a cancelled scan changes nothing.
-3. **See every database**, saved on your PC and grouped by project. Search by project, host, database or user. Click **Rescan** whenever you like.
+3. **Open a project's files.** Frontend/Backend files show the detected framework and local URL/port. Separate Database files show host, port, database, username and the full password. Click **Rescan** whenever you like.
+
+PgCreds Handler reads only database connection details and dev-server ports. It never reads, stores or shows unrelated `.env` or config values such as API keys, tokens or signing secrets.
 
 ## What it finds
 
@@ -35,7 +37,8 @@ Where things are kept:
 | What | Where |
 | --- | --- |
 | Connection details (no passwords) | `%APPDATA%\PgCredsHandler\connections.json` |
-| Settings (folders to scan, timers) | `%APPDATA%\PgCredsHandler\settings.json` |
+| Projects, apps and local URLs | `%APPDATA%\PgCredsHandler\inventory.json` |
+| Settings (folders to scan and background preferences) | `%APPDATA%\PgCredsHandler\settings.json` |
 | Passwords | Windows Credential Manager, entries named `PgCredsHandler:<id>`. Never in a file. |
 
 `%APPDATA%` is usually `C:\Users\<you>\AppData\Roaming`; paste it into File Explorer's address bar to open it. The folder is created the first time the app runs.
@@ -72,18 +75,18 @@ cd DataBaseCredsHandler
 
 `start.cmd` checks that the .NET SDK is installed, builds the app and starts it. You can also double-click it in File Explorer. Prefer the command line? `dotnet run --project src/PgCredsHandler.App` does the same. Visual Studio 2022 and VS Code (with C# Dev Kit) work too: run the `PgCredsHandler.App` project.
 
-### Optional, for upcoming features
+### Optional
 
 - [DBeaver](https://dbeaver.io/) or [pgAdmin](https://www.pgadmin.org/), to open a database with one click.
-- Windows Hello (PIN, fingerprint or face), to protect showing and copying a password.
 
 ## Roadmap
 
 - [x] One-button scan of the whole PC (or chosen folders), with progress and cancel
-- [x] Connections saved securely and listed by project, with search and remote-host warnings
+- [x] Project hierarchy with clickable Frontend/Backend files showing local URLs and ports
+- [x] Separate Database files with complete connection details and remote-host warnings
+- [x] Single instance, notification-area mode, start with Windows and quiet startup rescan
 - [x] Damaged data files backed up, never overwritten
 - [ ] One-click connect: open a database in DBeaver or pgAdmin with everything filled in, test a connection, copy as URL / JDBC / ADO.NET
-- [ ] Show/copy a password, protected by Windows Hello
 - [ ] Settings, add/edit and delete (edited entries are never overwritten by a rescan; deleted ones never come back)
 - [ ] More config formats: Django `settings.py`, Rails `database.yml`, Prisma, Spring
 
@@ -119,6 +122,7 @@ Every push and pull request is built and tested on GitHub Actions ([`ci.yml`](.g
 **Ground rules**
 
 - Never commit real credentials, `.env` files or your `connections.json` / `settings.json`. `.gitignore` blocks the usual names, but check your diff.
+- Turn on the privacy check once per clone: `git config core.hooksPath .githooks`. Before every commit it blocks the app's data files, real `.env` files, and any added line containing a project name, path, database or host that PgCreds Handler found on your PC (read from your own app data at commit time, never stored in the repo).
 - Keep the privacy promise: no networking outside `PgCredsHandler.Integrations`. `PrivacyTests` will fail if you add any.
 - The design rules, coding style and decisions are in [.agents/](.agents/README.md). They're written for AI coding agents and work just as well for people. Start with [.agents/rules/project/overview.md](.agents/rules/project/overview.md).
 - Contributing with an AI coding agent on Windows: turn on **Developer Mode** and clone with `git clone -c core.symlinks=true …`, so the `.claude/` links into `.agents/` work. Building and running the app doesn't need this.

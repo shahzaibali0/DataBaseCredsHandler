@@ -1,6 +1,6 @@
 ---
 name: desktop-ui
-description: "Spec and rules for the PgCreds Handler desktop UI: WinUI 3 (Windows App SDK) with CommunityToolkit.WinUI and WinUIEx, viewmodels in PgCredsHandler.Presentation, Mica window with NavigationView (Databases, Privacy & data, Settings), hero welcome, scan progress card, stat cards, search and filter, project cards (SettingsExpander), and what is still to build (show/copy with Windows Hello, connect, add/edit). Use for any XAML, page, viewmodel, app service or startup work."
+description: "Spec and rules for the PgCreds Handler desktop UI: WinUI 3 (Windows App SDK) with CommunityToolkit.WinUI and WinUIEx, viewmodels in PgCredsHandler.Presentation, Mica window with NavigationView, project cards with app files and database files, and complete database credentials. Use for any XAML, page, viewmodel, app service or startup work."
 ---
 
 # Desktop UI
@@ -13,7 +13,7 @@ The general WinUI rules are in `.agents/rules/dotnet/winui.md`. This page is the
 src/PgCredsHandler.Presentation/   (net8.0, testable, no UI framework)
   MainViewModel.cs                 state and commands for every page
   ProjectGroupViewModel.cs         one project card
-  ConnectionRowViewModel.cs        one database row (no password, only HasPassword)
+  ConnectionRowViewModel.cs        one database file with complete connection details
   IDesktopShell.cs                 data folder, open folder, folder picker
 src/PgCredsHandler.App/            (WinUI 3, views only)
   App.xaml(.cs)                    composition root (OnLaunched)
@@ -28,22 +28,30 @@ src/PgCredsHandler.App/            (WinUI 3, views only)
 
 ## Built
 
+**Projects page (current design, 2026-11-17).** Modelled on a reference design the owner provided (square case cards that open a detail window):
+- A grid of square project cards (`ItemsRepeater` + `UniformGridLayout`, min 250×250): accent strip, initials badge, name, app/database counts, stack summary, one line per local server (`Backend :3001`), path footer.
+- Clicking a card opens the project window over the grid (backdrop, Esc or click outside closes): `Ui/ProjectDetailPanel.xaml` with **Ports** (role, URL, where the port came from, Open), **Database connections** (host, port, database, user, password masked with eye + Copy, source; Open in DBeaver / pgAdmin / DbVisualizer, enabled only when installed; Copy connection URL without password), **Stack** and **Key packages** by purpose.
+- Closing the window, leaving the page, hiding to the tray or rescanning masks every shown password (`MainViewModel.HideAllPasswords`, `WorkspaceViewModel.HidePasswords`).
+
+Older notes below may describe earlier layouts.
+
+
 - **Window**: Mica, custom title bar with app mark and a "Local only" pill, min 900×620, starts 1240×820 centred. Sidebar: **Databases**, **Privacy & data**, footer **Settings**.
 - **Databases, first run**: gradient hero card (pill "PRIVATE · OFFLINE · OPEN SOURCE", headline, one-line explanation, **Scan my PC for databases** accent button, **Choose a folder instead**, the scope line), then three feature cards (stays on this PC, passwords encrypted, only your projects).
 - **Databases, scanning**: card with `ProgressRing`, files checked, databases found, current file, **Cancel**. Cancel or failure saves nothing.
-- **Databases, list**: title with last-scan summary, **Choose folder** and **Rescan** (F5); stat cards (Projects, Databases, On remote servers); search box (Ctrl+F) and `Segmented` filter (All / On this PC / On a network); scope line; a "no matches" card; one `SettingsExpander` per project (name, path, count) with a `SettingsCard` per database (name, `user@host:port · source`, tags: No longer found, Password saved, host badge: Local grey, Docker blue, Private amber, Remote red).
+- **Databases, list**: each Project contains clickable Frontend/Backend application files and separate Database files. An application file expands to framework, local URL/port and project folder. A Database file expands to host, port, database, username, full unmasked password, source and host type. The page has Projects/Apps/Databases stat cards, Ctrl+F search, **Choose folder**, and **Rescan** (F5).
 - **Privacy & data**: hero "Your data never leaves this PC"; data folder with **Open data folder**; passwords in Credential Manager; damaged files never overwritten; links to `PrivacyTests.cs` and the repo; how to start over.
-- **Settings**: folders to scan (**Add folder**, **Remove**, **Use all local drives**), always-skipped folders, theme follows Windows, about.
+- **Settings**: folders to scan (**Add folder**, **Remove**, **Use all local drives**), always-skipped folders, start with Windows, close to tray, theme follows Windows, about.
+- **Background**: single instance, optional start with Windows, quiet startup rescan, and close-to-tray with an Exit tray command.
 - **Errors**: an `InfoBar` at the top of Databases for an unreadable data file or a failed scan; scanning is disabled while a data file is unreadable.
 
 ## Still to build
 
 | Feature | Notes |
 | --- | --- |
-| Show / copy password | `UnlockService` (Windows Hello via `UserConsentVerifier`, `UnlockMinutes`), reveal auto-hides after `RevealSeconds`, `ClipboardService` clears after `ClipboardClearSeconds` only if unchanged. Flow in the `credential-safety` skill. |
 | Connect | Row actions: Open in DBeaver, Export to pgAdmin, Test, Copy connection string (URL / JDBC / ADO.NET, with or without password). Confirm before testing a Remote host. Spec in `db-client-integrations`. |
 | Add / edit / delete | Edit dialog (`ContentDialog`, `PasswordBox`); saving a scanned entry sets `IsManual`; delete of a scanned entry adds its fingerprint to `HiddenFingerprints`; confirm before delete. |
-| Settings | Timers (`UnlockMinutes`, `RevealSeconds`, `ClipboardClearSeconds`), `RequireWindowsHello` (turning off needs an unlock), DBeaver path, restore hidden connections. |
+| Settings | DBeaver path and restore hidden connections. |
 
 ## Done means
 

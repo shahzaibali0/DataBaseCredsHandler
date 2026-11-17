@@ -23,8 +23,19 @@ public interface ISettingsStore
     void Save(AppSettings settings);
 }
 
-/// <summary>The three stores the app keeps its data in, passed around together.</summary>
-public sealed record DataStores(IConnectionRepository Connections, ICredentialStore Credentials, ISettingsStore Settings);
+/// <summary>Stores discovered app metadata.</summary>
+public interface IInventoryRepository
+{
+    InventorySnapshot Load();
+    void Save(InventorySnapshot inventory);
+}
+
+/// <summary>The stores the app keeps its data in, passed around together.</summary>
+public sealed record DataStores(
+    IConnectionRepository Connections,
+    ICredentialStore Credentials,
+    ISettingsStore Settings,
+    IInventoryRepository Inventory);
 
 /// <summary>
 /// A data file exists but cannot be read (broken JSON, locked, no access). The store has copied it to

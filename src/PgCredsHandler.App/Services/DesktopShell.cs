@@ -5,7 +5,7 @@ using Windows.Storage.Pickers;
 
 namespace PgCredsHandler.App.Services;
 
-/// <summary>Windows shell actions for the viewmodels: the data folder, Explorer and the folder picker.</summary>
+/// <summary>Windows shell actions for the viewmodels: the data folder, Explorer, the browser and the folder picker.</summary>
 public sealed class DesktopShell : IDesktopShell
 {
     private readonly Func<IntPtr> _getWindowHandle;
@@ -20,6 +20,13 @@ public sealed class DesktopShell : IDesktopShell
         var startInfo = new ProcessStartInfo("explorer.exe") { UseShellExecute = false };
         startInfo.ArgumentList.Add(folderPath);
         Process.Start(startInfo);
+    }
+
+    // Only local dev-server addresses are opened; anything else is ignored rather than handed to the shell.
+    public void OpenUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https") || !uri.IsLoopback) return;
+        Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 
     public async Task<string?> PickFolderAsync()

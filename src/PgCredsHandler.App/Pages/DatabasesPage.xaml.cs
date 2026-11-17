@@ -6,7 +6,7 @@ using PgCredsHandler.Presentation;
 
 namespace PgCredsHandler.App.Pages;
 
-/// <summary>Welcome, scan progress and the databases grouped by project.</summary>
+/// <summary>Welcome, scan progress, the square project cards, and the project window over them.</summary>
 public sealed partial class DatabasesPage : Page
 {
     public DatabasesPage() => InitializeComponent();
@@ -15,9 +15,27 @@ public sealed partial class DatabasesPage : Page
 
     protected override void OnNavigatedTo(NavigationEventArgs e) => ViewModel = (MainViewModel)e.Parameter;
 
+    // Leaving the page closes the project window and masks every password again.
+    protected override void OnNavigatedFrom(NavigationEventArgs e) => ViewModel.CloseProjectCommand.Execute(null);
+
     private void OnSearchShortcut(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
     {
         SearchBox.Focus(FocusState.Keyboard);
         args.Handled = true;
     }
+
+    private void OnEscape(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (!ViewModel.IsProjectOpen) return;
+        ViewModel.CloseProjectCommand.Execute(null);
+        args.Handled = true;
+    }
+
+    // A card's template can't reach the page's viewmodel through x:Bind, so its click routes here.
+    private void OnProjectClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: WorkspaceViewModel project }) ViewModel.OpenProjectCommand.Execute(project);
+    }
+
+    private void OnBackdropTapped(object sender, TappedRoutedEventArgs e) => ViewModel.CloseProjectCommand.Execute(null);
 }

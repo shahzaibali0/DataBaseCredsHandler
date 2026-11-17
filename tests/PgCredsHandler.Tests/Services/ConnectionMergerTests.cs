@@ -102,6 +102,25 @@ public sealed class ConnectionMergerTests
     }
 
     [Fact]
+    public void Merge_ProjectWithRealEnvFile_IgnoresItsExampleFiles()
+    {
+        var real = Discovered(password: "real", sourceFile: ".env");
+        var example = Discovered(password: "example", sourceFile: ".env.production.example", isExample: true, database: "shop_prod");
+
+        var merge = Merge([], [real, example]);
+
+        Assert.Equal("shop", Assert.Single(merge.Connections).Database);
+    }
+
+    [Fact]
+    public void Merge_ProjectWithOnlyAnExampleFile_KeepsIt()
+    {
+        var merge = Merge([], [Discovered(password: "example", sourceFile: ".env.example", isExample: true)]);
+
+        Assert.Single(merge.Connections);
+    }
+
+    [Fact]
     public void Merge_NeverChangesTheListItWasGiven()
     {
         var saved = Saved();
@@ -116,14 +135,27 @@ public sealed class ConnectionMergerTests
 
     private static SavedConnection Saved(bool isManual = false) => new()
     {
-        ProjectName = "shop", ProjectPath = ProjectPath, Host = "localhost", Port = 5432,
-        Database = "shop", Username = "app", IsManual = isManual,
+        ProjectName = "shop",
+        ProjectPath = ProjectPath,
+        Host = "localhost",
+        Port = 5432,
+        Database = "shop",
+        Username = "app",
+        IsManual = isManual,
     };
 
-    private static DiscoveredConnection Discovered(string? password, string sourceFile = ".env", bool isExample = false) => new()
-    {
-        ProjectName = "shop", ProjectPath = ProjectPath, SourceFile = Path.Combine(ProjectPath, sourceFile),
-        SourceKind = ".env", IsExampleFile = isExample, Host = "localhost", Port = 5432,
-        Database = "shop", Username = "app", Password = password,
-    };
+    private static DiscoveredConnection Discovered(
+        string? password, string sourceFile = ".env", bool isExample = false, string database = "shop") => new()
+        {
+            ProjectName = "shop",
+            ProjectPath = ProjectPath,
+            SourceFile = Path.Combine(ProjectPath, sourceFile),
+            SourceKind = ".env",
+            IsExampleFile = isExample,
+            Host = "localhost",
+            Port = 5432,
+            Database = database,
+            Username = "app",
+            Password = password,
+        };
 }

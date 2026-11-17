@@ -36,6 +36,78 @@ public sealed class ScanWorkflowTests : IDisposable
     }
 
     [Fact]
+    public void ScanAndSave_ProjectWithEnvAndExampleFiles_SavesOnlyTheRealDatabase()
+    {
+        _projects.WriteFile("shop/package.json", "{}");
+        _projects.WriteFile("shop/.env", "DATABASE_URL=postgresql://postgres:s3cret!@localhost:5432/shop\n");
+        _projects.WriteFile("shop/.env.example", "DATABASE_URL=postgresql://user:password@host:port/dbname\n");
+        _projects.WriteFile("shop/.env.production.example", "DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE\n");
+        var stores = CreateStores(_credentials);
+
+        var summary = CreateWorkflow(stores).ScanAndSave(null, CancellationToken.None);
+
+        Assert.Equal(1, summary.Found);
+        Assert.Equal("shop", Assert.Single(stores.Connections.GetAll()).Database);
+    }
+
+    [Fact]
+    public void ScanAndSave_OnlyAPlaceholderExample_SavesNothing()
+    {
+        _projects.WriteFile("api/package.json", "{}");
+        _projects.WriteFile("api/.env.example", "DATABASE_URL=postgresql://user:password@host:port/dbname\n");
+        var stores = CreateStores(_credentials);
+
+        var summary = CreateWorkflow(stores).ScanAndSave(null, CancellationToken.None);
+
+        Assert.Equal(0, summary.Found);
+        Assert.Empty(stores.Connections.GetAll());
+    }
+
+    [Fact]
+    public void ScanAndSave_RepoWithBackendAndFrontend_FindsAppsPortsAndDatabase()
+    {
+        _projects.WriteFile("AcmeRepo/.git/HEAD", "ref: refs/heads/main\n");
+        _projects.WriteFile("AcmeRepo/acme_backend/package.json",
+            """{ "scripts": { "dev": "next dev --port 3001" }, "dependencies": { "next": "16" } }""");
+        _projects.WriteFile("AcmeRepo/acme_backend/.env",
+            "DATABASE_URL=postgresql://postgres:db-pass-123@localhost:5432/acme\n");
+        _projects.WriteFile("AcmeRepo/acme_frontend/package.json",
+            """{ "scripts": { "dev": "next dev" }, "dependencies": { "next": "16" } }""");
+        var stores = CreateStores(_credentials);
+
+        var summary = CreateWorkflow(stores).ScanAndSave(null, CancellationToken.None);
+
+        var inventory = stores.Inventory.Load();
+        Assert.Equal((1, 2), (summary.Found, summary.AppsFound));
+        Assert.All(inventory.Apps, app => Assert.Equal("AcmeRepo", app.WorkspaceName));
+        Assert.Equal(
+            [("acme_backend", AppRole.Backend, "http://localhost:3001"), ("acme_frontend", AppRole.Frontend, "http://localhost:3000")],
+            inventory.Apps.OrderBy(app => app.AppName).Select(app => (app.AppName, app.Role, app.LocalUrl)));
+        var connection = Assert.Single(stores.Connections.GetAll());
+        Assert.Equal("acme", connection.Database);
+        Assert.Equal("db-pass-123", _credentials.Read(connection.Id));
+    }
+
+    [Fact]
+    public void ScanAndSave_EnvironmentSecrets_AppearNowhere()
+    {
+        const string jwtValue = "jwt-guard-value-123456";
+        const string nextAuthValue = "nextauth-guard-value-123456";
+        _projects.WriteFile("GuardRepo/.git/HEAD", "ref: refs/heads/main\n");
+        _projects.WriteFile("GuardRepo/backend/package.json", "{}");
+        _projects.WriteFile("GuardRepo/backend/.env",
+            $"DATABASE_URL=postgresql://postgres:db-password@localhost:5432/guard\nJWT_SECRET={jwtValue}\nNEXTAUTH_SECRET={nextAuthValue}\n");
+        var stores = CreateStores(_credentials);
+
+        CreateWorkflow(stores).ScanAndSave(null, CancellationToken.None);
+
+        Assert.False(_credentials.ContainsValue(jwtValue));
+        Assert.False(_credentials.ContainsValue(nextAuthValue));
+        AssertFileDoesNotContain(_appData.Combine("inventory.json"), jwtValue, nextAuthValue);
+        AssertFileDoesNotContain(_appData.Combine("connections.json"), jwtValue, nextAuthValue);
+    }
+
+    [Fact]
     public void ScanAndSave_RunTwice_AddsNothingTheSecondTime()
     {
         WriteShopProject();
@@ -121,8 +193,8 @@ public sealed class ScanWorkflowTests : IDisposable
 
         CreateWorkflow(CreateStores(_credentials)).ScanAndSave(new SynchronousProgress(reports), CancellationToken.None);
 
-        Assert.Single(reports);
-        Assert.EndsWith(".env", reports[0].CurrentFile);
+        Assert.Equal([".env", "package.json"], reports.Select(report => Path.GetFileName(report.CurrentFile)).Order());
+        Assert.Equal([1, 2], reports.Select(report => report.FilesScanned).Order());
     }
 
     private string WriteShopProject()
@@ -135,9 +207,16 @@ public sealed class ScanWorkflowTests : IDisposable
     private DataStores CreateStores(ICredentialStore credentials) => new(
         new JsonConnectionRepository(_appData.Combine("connections.json")),
         credentials,
-        new JsonSettingsStore(_appData.Combine("settings.json")));
+        new JsonSettingsStore(_appData.Combine("settings.json")),
+        new JsonInventoryRepository(_appData.Combine("inventory.json")));
 
     private ScanWorkflow CreateWorkflow(DataStores stores) => new(stores, () => [_projects.Path]);
+
+    private static void AssertFileDoesNotContain(string path, params string[] forbiddenValues)
+    {
+        var json = File.ReadAllText(path);
+        Assert.All(forbiddenValues, forbiddenValue => Assert.DoesNotContain(forbiddenValue, json, StringComparison.Ordinal));
+    }
 
     // Progress<T> posts to a thread pool; this one records on the calling thread so the test can assert.
     private sealed class SynchronousProgress(List<ScanProgress> reports) : IProgress<ScanProgress>

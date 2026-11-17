@@ -11,6 +11,7 @@ namespace PgCredsHandler.Storage;
 /// current user (CRED_PERSIST_LOCAL_MACHINE would be shared; we use CRED_PERSIST_ENTERPRISE
 /// so it roams with the user profile but stays per-user).
 /// The secret is DPAPI-protected by Windows per user account, so no other user can read it.
+/// A value larger than one credential can hold is split across numbered credentials (see <see cref="CredentialChunks"/>).
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class WindowsCredentialStore : ICredentialStore
@@ -18,7 +19,52 @@ public sealed class WindowsCredentialStore : ICredentialStore
     public void Save(string connectionId, string username, string password)
     {
         var target = Target(connectionId);
-        var blob = Encoding.Unicode.GetBytes(password);
+        var bytes = Encoding.Unicode.GetBytes(password);
+        try
+        {
+            var chunks = CredentialChunks.Split(bytes);
+            for (var index = 0; index < chunks.Count; index++)
+                WriteBlob(CredentialChunks.TargetFor(target, index), username, chunks[index]);
+
+            DeleteChunksFrom(target, chunks.Count); // a shorter value than last time leaves no old pieces behind
+        }
+        finally
+        {
+            Array.Clear(bytes);
+        }
+    }
+
+    public string? Read(string connectionId)
+    {
+        var target = Target(connectionId);
+        var first = ReadBlob(target);
+        if (first is null) return null;
+
+        var chunks = new List<byte[]> { first };
+        for (var index = 1; index < CredentialChunks.MaxChunks; index++)
+        {
+            var next = ReadBlob(CredentialChunks.TargetFor(target, index));
+            if (next is null) break;
+            chunks.Add(next);
+        }
+
+        byte[]? joined = null;
+        try
+        {
+            joined = CredentialChunks.Join(chunks);
+            return Encoding.Unicode.GetString(joined);
+        }
+        finally
+        {
+            if (joined is not null) Array.Clear(joined);
+            foreach (var chunk in chunks) Array.Clear(chunk);
+        }
+    }
+
+    public void Delete(string connectionId) => DeleteChunksFrom(Target(connectionId), 0);
+
+    private static void WriteBlob(string target, string username, byte[] blob)
+    {
         var handle = GCHandle.Alloc(blob, GCHandleType.Pinned);
         try
         {
@@ -34,7 +80,8 @@ public sealed class WindowsCredentialStore : ICredentialStore
             };
 
             if (!CredWrite(ref cred, 0))
-                throw new InvalidOperationException($"CredWrite failed (error {Marshal.GetLastWin32Error()}).");
+                throw new InvalidOperationException(
+                    $"Windows Credential Manager refused to save \"{username}\" (error {Marshal.GetLastWin32Error()}).");
         }
         finally
         {
@@ -43,22 +90,25 @@ public sealed class WindowsCredentialStore : ICredentialStore
         }
     }
 
-    public string? Read(string connectionId)
+    private static byte[]? ReadBlob(string target)
     {
-        if (!CredRead(Target(connectionId), CRED_TYPE_GENERIC, 0, out var handle))
-            return null;
+        if (!CredRead(target, CRED_TYPE_GENERIC, 0, out var handle)) return null;
         try
         {
             var cred = Marshal.PtrToStructure<CREDENTIAL>(handle);
-            if (cred.CredentialBlobSize == 0 || cred.CredentialBlob == IntPtr.Zero) return "";
+            if (cred.CredentialBlobSize == 0 || cred.CredentialBlob == IntPtr.Zero) return [];
             var bytes = new byte[cred.CredentialBlobSize];
             Marshal.Copy(cred.CredentialBlob, bytes, 0, bytes.Length);
-            return Encoding.Unicode.GetString(bytes);
+            return bytes;
         }
         finally { CredFree(handle); }
     }
 
-    public void Delete(string connectionId) => CredDelete(Target(connectionId), CRED_TYPE_GENERIC, 0);
+    private static void DeleteChunksFrom(string target, int firstIndex)
+    {
+        foreach (var chunkTarget in CredentialChunks.TargetsFrom(target, firstIndex))
+            CredDelete(chunkTarget, CRED_TYPE_GENERIC, 0);
+    }
 
     private static string Target(string connectionId) => $"{Paths.CredentialPrefix}:{connectionId}";
 

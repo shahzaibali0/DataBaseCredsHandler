@@ -49,7 +49,7 @@ The settled requirements: a small local tool whose security rules are easy to se
 | Persistence | Storage | JSON files (atomic writes), Credential Manager | Business rules |
 | Handoff to clients | Integrations | Connection strings, connectivity test, launching DBeaver, writing pgAdmin `servers.json` | Reading the credential store, UI |
 | Screen state | Presentation | Viewmodels: what each screen shows, commands, grouping, filtering, counts | XAML, pickers, OS APIs |
-| Presentation | App | XAML pages and window, pickers, Explorer, Windows Hello, clipboard, timers, wiring | Parsing, merge rules, file formats, screen logic |
+| Presentation | App | XAML pages and window, pickers, Explorer, tray/startup services, wiring | Parsing, merge rules, file formats, screen logic |
 
 ## Locate the owner before changing code
 
@@ -68,7 +68,7 @@ The settled requirements: a small local tool whose security rules are easy to se
 | Load and save connections and settings | `IConnectionRepository`, `ISettingsStore` (`JsonDataFile` does the file work: missing = empty, broken = backup + `DataFileUnreadableException`) | `ScanWorkflow`, App |
 | Build a connection string | `ConnectionStringBuilder` (to build; today `PostgresUrl.ToUrl`/`ToJdbc`) | App copy commands |
 | Open in DBeaver / export to pgAdmin / test | `DbeaverLauncher`, `PgAdminExporter`, `ConnectionTester` (to build) | App row commands |
-| Gate reveal and copy | `UnlockService` (to build) | Reveal and copy commands |
+| Show complete database credentials | `ConnectionRowViewModel` reads through `ICredentialStore` | Database file template |
 
 ## Design patterns in use
 

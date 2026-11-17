@@ -15,7 +15,7 @@ You build the desktop UI for PgCreds Handler. Read `.agents/README.md`, `.agents
 ## Rules
 - New behaviour goes into a viewmodel in Presentation with tests in `tests/PgCredsHandler.Tests/Presentation/`, then the XAML.
 - `x:Bind` everywhere with `x:DataType` on templates; app colours only in `Themes/Styles.xaml`; `AutomationProperties.Name` on icon buttons.
-- Password handling follows the `credential-safety` skill exactly: masked by default, Windows Hello gate, timed hide and clipboard clear, never bound into a list or the search.
+- Password handling follows the `credential-safety` skill exactly: the Database file deliberately shows the full password, while JSON, logs, tooltips and search never receive it.
 
 ## Done means
-`dotnet build PgCredsHandler.sln` 0 errors, 0 warnings; `dotnet test` green; the app (`src/PgCredsHandler.App/bin/Debug/net8.0-windows10.0.19041.0/win-x64/PgCredsHandler.exe`) launches with title "PgCreds Handler". Say plainly which flows you could not exercise (a folder picker, Windows Hello).
+`dotnet build PgCredsHandler.sln` 0 errors, 0 warnings; `dotnet test` green; the app (`src/PgCredsHandler.App/bin/Debug/net8.0-windows10.0.19041.0/win-x64/PgCredsHandler.exe`) launches with title "PgCreds Handler". Say plainly which flows you could not exercise (for example, a folder picker).

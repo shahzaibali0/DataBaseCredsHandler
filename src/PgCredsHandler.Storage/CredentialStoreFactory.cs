@@ -22,4 +22,7 @@ public sealed class InMemoryCredentialStore : ICredentialStore
     public void Save(string connectionId, string username, string password) => _store[connectionId] = password;
     public string? Read(string connectionId) => _store.GetValueOrDefault(connectionId);
     public void Delete(string connectionId) => _store.Remove(connectionId);
+
+    /// <summary>Lets tests assert that an out-of-scope value was never stored without exposing stored values.</summary>
+    public bool ContainsValue(string value) => _store.Values.Contains(value, StringComparer.Ordinal);
 }

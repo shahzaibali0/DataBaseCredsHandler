@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -7,7 +8,10 @@ using WinUIEx;
 
 namespace PgCredsHandler.App;
 
-/// <summary>The window: title bar, sidebar navigation and the page frame. All state lives in the viewmodel.</summary>
+/// <summary>
+/// The window: title bar, sidebar navigation and the page frame. Closing it hides it to the tray (unless the
+/// user turned that off); every shown password is hidden again first.
+/// </summary>
 public sealed partial class MainWindow : Window
 {
     private const int StartWidth = 1240;
@@ -23,10 +27,13 @@ public sealed partial class MainWindow : Window
     };
 
     private readonly MainViewModel _viewModel;
+    private readonly Action _exitApp;
+    private bool _isExiting;
 
-    public MainWindow(MainViewModel viewModel)
+    public MainWindow(MainViewModel viewModel, Action exitApp)
     {
         _viewModel = viewModel;
+        _exitApp = exitApp;
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
@@ -37,8 +44,38 @@ public sealed partial class MainWindow : Window
         windowManager.MinHeight = MinimumHeight;
         this.SetWindowSize(StartWidth, StartHeight);
         this.CenterOnScreen();
+        AppWindow.Closing += OnClosing;
 
         Navigation.SelectedItem = Navigation.MenuItems[0];
+    }
+
+    public void ShowAndFocus()
+    {
+        AppWindow.Show();
+        Activate();
+        this.SetForegroundWindow();
+    }
+
+    public void CloseForExit()
+    {
+        _isExiting = true;
+        Close();
+    }
+
+    private void OnClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_isExiting) return;
+
+        if (!_viewModel.KeepRunningInTray)
+        {
+            args.Cancel = true;
+            _exitApp();
+            return;
+        }
+
+        args.Cancel = true;
+        _viewModel.HideAllPasswords();
+        sender.Hide();
     }
 
     private void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

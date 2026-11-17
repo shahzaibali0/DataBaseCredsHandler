@@ -8,6 +8,9 @@ public interface IDesktopShell
 
     void OpenFolder(string folderPath);
 
+    /// <summary>Opens a local address (an app's dev server) in the default browser.</summary>
+    void OpenUrl(string url);
+
     /// <summary>Lets the user pick a folder; null when they cancel.</summary>
     Task<string?> PickFolderAsync();
 }

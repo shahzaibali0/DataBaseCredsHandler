@@ -12,7 +12,11 @@ description: "How PgCreds Handler scans: ProjectWalker exclusions and project ro
 2. **Project root** (`FindProjectRoot`): the nearest ancestor, not above the scan root, containing a marker: `.git`, `package.json`, `pyproject.toml`, `requirements.txt`, `go.mod`, `composer.json`, `Cargo.toml`, `pom.xml`, `build.gradle`, `Gemfile`, `manage.py`, `artisan`. No marker: the file's own folder. The project name is that folder's name.
 3. **Parse**: the first parser whose `CanParse(fileName)` matches. A parser that throws is skipped for that file.
 4. **Defaults** (`ProjectScanner`): host `localhost`, port `5432`, user `postgres`, database = user (or `postgres`). A hit with no host, user, database or password is dropped.
-5. **Merge** (`ConnectionMerger.Merge`), below.
+   **Template placeholders are dropped** (`PlaceholderValues.LooksLikePlaceholder`): a host that is a template word (`host`, `your-host`…) or still holds a word-port (`HOST:PORT`), any bracketed token (`<host>`, `{user}`), or a database *and* user that are both template words (`dbname` + `user`). A real database called `database`, or a real user called `user`, is kept.
+5. **Apps** (`AppDetector`): `package.json` and web `.csproj` files identify backend/frontend apps. Dev-server ports may come from a script, framework default, launch settings or `PORT=` in an adjacent `.env` file.
+6. **Merge** (`ConnectionMerger.Merge`), below. `InventoryMerger` replaces apps under scanned roots and keeps apps elsewhere.
+
+The scanner reads only database connection details and dev-server ports. It never reads, stores or shows API keys, tokens or other values from `.env` or config files.
 
 ## Parsers
 
@@ -54,7 +58,8 @@ description: "How PgCreds Handler scans: ProjectWalker exclusions and project ro
 
 Inputs: existing saved list, discovered list, the roots that were scanned, hidden fingerprints, a `readPassword` delegate, `now`. Output: a new list (inputs are cloned, never mutated), the passwords to write, and counts.
 
-1. **De-duplicate** the discovered list by fingerprint. Winner: has a password, then not an example file, then source priority `.env` < `appsettings.json` < `docker-compose` < others.
+1. **Real config beats examples**: if a project has any connection from a non-example file, its example-file connections (`.env.example`, `.env.production.example`…) are ignored. An example file only counts when it is the project's only config.
+   **De-duplicate** the discovered list by fingerprint. Winner: has a password, then not an example file, then source priority `.env` < `appsettings.json` < `docker-compose` < others.
 2. For each winner:
    - fingerprint hidden → skip.
    - matches a **manual** entry → skip; the user owns it.

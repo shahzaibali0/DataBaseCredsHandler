@@ -1,0 +1,5 @@
+#!/bin/sh
+# Blocks commits that would publish PgCreds Handler user data: the app's data files, real .env files,
+# or lines containing a project name, path, database or host the app found on this PC.
+# Turn it on once per clone: git config core.hooksPath .githooks
+exec powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)/.githooks/check-private-data.ps1"

@@ -114,16 +114,23 @@ public static class ConnectionMerger
 
     /// <summary>
     /// The same connection often appears in several files (.env, .env.example, docker-compose).
-    /// Keep one per fingerprint: prefer one with a password, then a non-example file.
+    /// First, a project with a real config file ignores its example files: they describe another
+    /// environment or a template, not a database on this PC. Then keep one per fingerprint:
+    /// prefer one with a password, then a non-example file.
     /// </summary>
     public static IEnumerable<DiscoveredConnection> Deduplicate(IEnumerable<DiscoveredConnection> found) =>
-        found
+        PreferRealConfigFiles(found)
             .GroupBy(d => d.Fingerprint, StringComparer.Ordinal)
             .Select(g => g
                 .OrderByDescending(d => d.Password is not null)
                 .ThenBy(d => d.IsExampleFile)
                 .ThenBy(d => SourcePriority(d.SourceKind))
                 .First());
+
+    private static IEnumerable<DiscoveredConnection> PreferRealConfigFiles(IEnumerable<DiscoveredConnection> found) =>
+        found
+            .GroupBy(d => ConnectionKey.NormalizePath(d.ProjectPath), StringComparer.Ordinal)
+            .SelectMany(project => project.Any(d => !d.IsExampleFile) ? project.Where(d => !d.IsExampleFile) : project);
 
     private static int SourcePriority(string kind) => kind switch
     {

@@ -6,7 +6,7 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 ### Stack
 
-- WinUI 3 (Windows App SDK 1.8) on .NET 8 with CommunityToolkit.Mvvm, because it is a Windows-only desktop tool that needs Windows Hello and Credential Manager, WinUI 3 gives Microsoft's own native Windows 11 look (Mica, NavigationView), and the toolkit's source generators remove MVVM boilerplate. Proton VPN's Windows app made the same move from WPF to WinUI 3. (The first UI was WPF with WPF-UI; replaced on 2026-11-17 while it was still one screen, the cheapest time to switch.)
+- WinUI 3 (Windows App SDK 1.8) on .NET 8 with CommunityToolkit.Mvvm, because it is a Windows-only desktop tool that needs Credential Manager, WinUI 3 gives Microsoft's own native Windows 11 look (Mica, NavigationView), and the toolkit's source generators remove MVVM boilerplate. Proton VPN's Windows app made the same move from WPF to WinUI 3. (The first UI was WPF with WPF-UI; replaced on 2026-11-17 while it was still one screen, the cheapest time to switch.)
 - Third-party UI: CommunityToolkit.WinUI controls (SettingsCard/SettingsExpander, Segmented) and WinUIEx window helpers, because they are free, MIT-licensed and the same set Proton VPN uses; commercial suites (Telerik, Syncfusion, DevExpress) were rejected because their licences don't fit an MIT project anyone can clone and build.
 - The plain WinUI `Window` with WinUIEx helpers, not WinUIEx's `WindowEx` base class, because `WindowEx`'s obsolete `Icon` member puts warnings into generated code and the build must stay at 0 warnings without suppressions.
 - Viewmodels live in a separate `PgCredsHandler.Presentation` project (plain `net8.0`, no UI framework), because WinUI projects are hard to unit-test and the privacy test must cover the code that shows data; the App holds only XAML and a small shell service.
@@ -27,7 +27,7 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 
 - Passwords only in Windows Credential Manager, metadata in `%APPDATA%\PgCredsHandler\connections.json`, because Credential Manager is DPAPI-protected per Windows user and the JSON can then be read or backed up without exposing anything.
 - The credential key is the random `SavedConnection.Id`, not the fingerprint, because editing a manual entry's host or port must keep its password.
-- Reveal and copy are a wanted feature, gated by Windows Hello with a 5-minute unlock, 30-second reveal and 30-second clipboard clear, because it is the user's own machine and credentials, but a shoulder-surfer or a clipboard manager shouldn't get them for free.
+- Database files show complete connection details, including the full password without masking or Windows Hello, because the owner explicitly wants every value immediately visible when the file is opened; passwords remain stored only in Windows Credential Manager at rest.
 - The pgAdmin export never contains a password, because pgAdmin prompts for it and the export file may be shared or synced.
 - DBeaver gets the password on its command line, because its `-con` option is the only one-click way in; other processes of the same user can see it while DBeaver starts, an accepted trade-off with an "open without password" option.
 
@@ -53,6 +53,14 @@ One line each: the choice, then why. Rules that follow from these are in `.agent
 - Two ways to start: a self-contained single-file `PgCredsHandler.exe` on GitHub Releases (built by `release.yml` on a `v*` tag) for users, and `start.cmd` for people who clone, because neither should need to know `dotnet` commands.
 - The privacy promise (nothing leaves the PC) is shown in the app's footer and the README and enforced by `PrivacyTests`, which fails if Core, Scanner, Storage or App reference a networking library, because an open-source tool that reads credentials must be easy to trust and easy to audit.
 - A data file that exists but can't be read is backed up and never saved over, and the app disables scanning until the user fixes it, because silently starting empty would erase manual entries and resurrect deleted ones.
+
+- A project with a real config file ignores its example files, and template placeholders (`USER@HOST:PORT/DATABASE`) are never saved, because one backend folder should show the one database it really uses; found on the owner's first real scan, where every project showed a second, fake `DATABASE` entry from `.env.production.example`.
+- The app reads only database connection details and local dev-server ports, never other `.env` or config values, because the owner only wants databases and local URLs and reading API keys, tokens or other secrets was out of scope.
+
+- Projects are square cards that open a project window (ports, database connections, stack, key packages), because the owner wants to see a project at a glance and everything about it in one place, like a reference design the owner provided.
+- Stack and key packages come from package names in `package.json` / `.csproj`, filtered through a curated `PackageCatalog`, because the owner wants the important third-party choices, not every dependency; reading package names exposes no secrets.
+- The database password is masked with an eye button in the project window, because the owner asked for an eye to see credentials; it is read from Credential Manager only when the eye or Copy is clicked and masked again when the window closes.
+- "Open in" buttons: DBeaver connects directly (`-con`, password on its command line, an accepted trade-off), pgAdmin gets the server imported with its own `setup.py load-servers` (no password in the file, so pgAdmin asks once), DbVisualizer is started and the connection URL copied, because only DBeaver offers a direct connect option and passwords must not be written to files. pgAdmin is also found where the PostgreSQL installer bundles it (`Program Files\PostgreSQL\<version>\pgAdmin 4`).
 
 _New decisions go here, one line each: the choice, then why._
 

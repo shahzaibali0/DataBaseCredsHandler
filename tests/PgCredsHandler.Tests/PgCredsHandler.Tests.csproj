@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\PgCredsHandler.Scanner\PgCredsHandler.Scanner.csproj" />
     <ProjectReference Include="..\..\src\PgCredsHandler.Storage\PgCredsHandler.Storage.csproj" />
     <ProjectReference Include="..\..\src\PgCredsHandler.Presentation\PgCredsHandler.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\PgCredsHandler.Integrations\PgCredsHandler.Integrations.csproj" />
   </ItemGroup>
 
 </Project>

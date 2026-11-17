@@ -41,3 +41,9 @@ PgCredsHandler/
 
 # Local release builds
 publish/
+
+# PgCreds Handler data and backups (the app keeps them in %APPDATA%, never here)
+inventory.json
+*.backup-*
+*.db
+pgcreds-*.json

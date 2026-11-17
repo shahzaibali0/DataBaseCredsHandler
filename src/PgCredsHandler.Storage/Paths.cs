@@ -16,6 +16,7 @@ public static class Paths
 
     public static string ConnectionsFile => Path.Combine(DataFolder, "connections.json");
     public static string SettingsFile => Path.Combine(DataFolder, "settings.json");
+    public static string InventoryFile => Path.Combine(DataFolder, "inventory.json");
 
     /// <summary>Prefix for Windows Credential Manager target names.</summary>
     public const string CredentialPrefix = "PgCredsHandler";

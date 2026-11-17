@@ -1,6 +1,6 @@
 ---
 name: secrets-reviewer
-description: Read-only reviewer that checks PgCredsHandler changes against the project's password-handling rules — no passwords in JSON/logs/exceptions, Credential Manager usage, reveal/clipboard timers, Windows Hello gating, safe process launching. Use after changes to Storage, Integrations, or the App's password flows.
+description: Read-only reviewer that checks PgCredsHandler changes against the project's password-handling rules — Credential Manager at rest, full password only in the Database file, no passwords in JSON/logs/exceptions/tooltips/search, and safe process launching. Use after changes to Storage, Integrations, or password display.
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -18,8 +18,8 @@ Read `.agents/README.md`, `.agents/rules/project/overview.md` and the `credentia
 4. **Process launching** (DBeaver) uses `ArgumentList`, not a concatenated string; values with
    `|`, `=`, quotes, or spaces are escaped. Note that the password is visible in the process
    command line to other processes of the same user — flag it as a known trade-off, not a bug, unless a better option exists.
-5. **UI gating:** Show/Copy require the unlock check when `RequireWindowsHello` is on; reveal
-   auto-hides; clipboard clear only overwrites if the value is unchanged; password not bound in list items.
+5. **Plaintext UI scope:** the full password is read only when its Database file expands, clears when
+   that file collapses or the window hides, and never enters app summaries, other list items, tooltips or search.
 6. **Scanner scope:** only user-chosen `ScanRoots`, excluded folders respected, symlink/junction loops not followed.
 7. **Merge safety:** manual entries untouched, stale-not-delete, `HiddenFingerprints` honoured.
 
