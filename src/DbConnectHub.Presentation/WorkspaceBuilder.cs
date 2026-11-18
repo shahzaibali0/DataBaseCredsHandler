@@ -30,6 +30,14 @@ public static class WorkspaceBuilder
             .ToList();
     }
 
+    /// <summary>The name of the project a folder is shown under: its app's project, else the project around it.</summary>
+    public static string ProjectNameFor(string folder, IReadOnlyList<SavedApp> apps)
+    {
+        var owner = apps.FirstOrDefault(app => SamePath(app.AppPath, folder))
+            ?? apps.FirstOrDefault(app => ConnectionKey.IsUnder(folder, app.WorkspacePath));
+        return owner?.WorkspaceName ?? WorkspaceName(folder);
+    }
+
     // A config folder with no package.json/.csproj still needs a group, inside the project that contains it.
     private static List<SavedApp> AppsIncludingLooseFolders(WorkspaceSources sources)
     {

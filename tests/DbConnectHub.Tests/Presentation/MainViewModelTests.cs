@@ -99,11 +99,45 @@ public sealed class MainViewModelTests : IDisposable
 
         Assert.Equal((true, false, false), (database.OpenInDbeaverCommand.CanExecute(null),
             database.OpenInPgAdminCommand.CanExecute(null), database.OpenInDbVisualizerCommand.CanExecute(null)));
-        database.OpenInDbeaverCommand.Execute(null);
+        await database.OpenInDbeaverCommand.ExecuteAsync(null);
 
         var (tool, request) = Assert.Single(_tools.Opened);
         Assert.Equal(DatabaseTool.DBeaver, tool);
-        Assert.Equal(new DatabaseLaunchRequest("shop_backend · shop_db", "localhost", 5432, "shop_db", "shop_user", "secret-db-1"), request);
+        // Named after the project on the card (the repository), not the app folder the config file is in.
+        Assert.Equal(new DatabaseLaunchRequest("ShopRepo · shop_db", "localhost", 5432, "shop_db", "shop_user", "secret-db-1"), request);
+    }
+
+    [Fact]
+    public async Task OpenInPgAdmin_NeverReadsThePasswordItDoesNotUse()
+    {
+        _tools.Installed.Add(DatabaseTool.PgAdmin);
+        WriteRepository();
+        var database = Assert.Single(Assert.Single((await ScannedViewModel()).Workspaces).Databases);
+
+        await database.OpenInPgAdminCommand.ExecuteAsync(null);
+
+        var (_, request) = Assert.Single(_tools.Opened);
+        Assert.Null(request.Password);
+        Assert.DoesNotContain("secret-db-1", (request with { Password = "secret-db-1" }).ToString());
+    }
+
+    [Fact]
+    public async Task OpenInTool_ShowsProgressUntilTheToolHasOpened()
+    {
+        _tools.Installed.Add(DatabaseTool.PgAdmin);
+        WriteRepository();
+        var database = Assert.Single(Assert.Single((await ScannedViewModel()).Workspaces).Databases);
+        var toolOpened = new TaskCompletionSource<ToolLaunch>();
+        _tools.NextLaunch = toolOpened.Task;
+
+        var opening = database.OpenInPgAdminCommand.ExecuteAsync(null);
+        var shownWhileOpening = (database.IsOpening, database.OpeningText);
+        toolOpened.SetResult(new ToolLaunch(true, "opened"));
+        await opening;
+
+        Assert.True(shownWhileOpening.IsOpening);
+        Assert.Contains("pgAdmin", shownWhileOpening.OpeningText);
+        Assert.Equal((false, ""), (database.IsOpening, database.OpeningText));
     }
 
     [Fact]
@@ -238,10 +272,13 @@ public sealed class MainViewModelTests : IDisposable
 
         public bool IsInstalled(DatabaseTool tool) => Installed.Contains(tool);
 
-        public ToolLaunch Open(DatabaseTool tool, DatabaseLaunchRequest request)
+        /// <summary>Set to hold the launch open, so a test can look at the screen while the tool is starting.</summary>
+        public Task<ToolLaunch>? NextLaunch { get; set; }
+
+        public Task<ToolLaunch> OpenAsync(DatabaseTool tool, DatabaseLaunchRequest request)
         {
             Opened.Add((tool, request));
-            return new ToolLaunch(true, "opened");
+            return NextLaunch ?? Task.FromResult(new ToolLaunch(true, "opened"));
         }
     }
 

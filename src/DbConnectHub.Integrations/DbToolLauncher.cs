@@ -1,44 +1,40 @@
-using System.Text.Json;
-
 namespace DbConnectHub.Integrations;
 
 /// <summary>
 /// Opens a database in a client with the connection already set up:
-/// DBeaver connects straight away (password included); pgAdmin gets the server added (it asks for the password
-/// once, because writing it to a file would break the rule that passwords live only in Credential Manager);
-/// DbVisualizer is started and the caller copies the connection URL for its "Create Connection" box.
+/// DBeaver connects straight away (password included); pgAdmin gets the login added under "DB Connect Hub" if it
+/// isn't there yet, with a password command that runs this app, because writing the password to pgAdmin's file
+/// would break the rule that passwords live only in Credential Manager; DbVisualizer is started with the URL copied.
 /// </summary>
 public sealed class DbToolLauncher
 {
-    // pgAdmin's desktop mode keeps everything under this built-in user.
-    private const string PgAdminDesktopUser = "pgadmin4@pgadmin.org";
-    private static readonly TimeSpan PgAdminImportTimeout = TimeSpan.FromSeconds(60);
-
-    // Where the pgAdmin desktop app keeps its servers, so the import lands in the database the window reads.
-    private static readonly string PgAdminDesktopDatabase =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "pgAdmin", "pgadmin4.db");
+    // DBeaver and pgAdmin are slow to show a window on a cold start; the screen shows progress until then.
+    private static readonly TimeSpan WindowTimeout = TimeSpan.FromSeconds(60);
 
     private readonly DbToolLocator _locator;
     private readonly IProcessRunner _processes;
+    private readonly PgAdminServers _pgAdminServers;
 
-    public DbToolLauncher(DbToolLocator locator, IProcessRunner processes)
+    /// <param name="appPath">This app's exe, which pgAdmin runs to get a password; null makes pgAdmin ask instead.</param>
+    public DbToolLauncher(DbToolLocator locator, IProcessRunner processes, string? appPath)
     {
         _locator = locator;
         _processes = processes;
+        _pgAdminServers = new PgAdminServers(processes, appPath);
     }
 
     public bool IsInstalled(DbTool tool) => _locator.Find(tool) is not null;
 
-    public LaunchResult Open(DbTool tool, DbConnectionInfo connection)
+    public async Task<LaunchResult> OpenAsync(DbTool tool, DbConnectionInfo connection, CancellationToken cancellationToken)
     {
         var executable = _locator.Find(tool);
         if (executable is null) return new LaunchResult(false, $"{DisplayName(tool)} isn't installed on this PC.");
 
         return tool switch
         {
-            DbTool.DBeaver => OpenInDbeaver(executable, connection),
-            DbTool.PgAdmin => OpenInPgAdmin(executable, connection),
-            _ => StartOnly(executable, "DbVisualizer opened. The connection URL is on your clipboard: choose Create Connection and paste it."),
+            DbTool.DBeaver => await OpenInDbeaverAsync(executable, connection, cancellationToken).ConfigureAwait(false),
+            DbTool.PgAdmin => await OpenInPgAdminAsync(executable, connection, cancellationToken).ConfigureAwait(false),
+            _ => await OpenInDbVisualizerAsync(executable, cancellationToken).ConfigureAwait(false),
         };
     }
 
@@ -63,71 +59,55 @@ public sealed class DbToolLauncher
         return ["-con", string.Join('|', values.Where(pair => pair.Value is not null).Select(pair => $"{pair.Key}={pair.Value}"))];
     }
 
-    /// <summary>A pgAdmin servers.json with one server and no password field.</summary>
-    public static string PgAdminServersJson(DbConnectionInfo connection) => JsonSerializer.Serialize(new
-    {
-        Servers = new Dictionary<string, object>
-        {
-            ["1"] = new
-            {
-                Name = connection.Name,
-                Group = "DB Connect Hub",
-                Host = connection.Host,
-                Port = connection.Port,
-                MaintenanceDB = connection.Database,
-                Username = connection.Username,
-                SSLMode = "prefer",
-            },
-        },
-    });
-
-    private LaunchResult OpenInDbeaver(string executable, DbConnectionInfo connection)
+    private async Task<LaunchResult> OpenInDbeaverAsync(string executable, DbConnectionInfo connection, CancellationToken cancellationToken)
     {
         var arguments = DbeaverArguments(connection);
         if (arguments is null)
             return new LaunchResult(false, "DBeaver can't take a value that contains \"|\". Copy the details into DBeaver instead.");
 
-        _processes.Start(executable, arguments);
-        return new LaunchResult(true, $"DBeaver is opening {connection.Database}, already connected.");
+        var started = await StartAsync(executable, arguments, cancellationToken).ConfigureAwait(false);
+        return Opened(DbTool.DBeaver, started, $"It connects to {connection.Database} by itself.");
     }
 
-    private LaunchResult OpenInPgAdmin(string executable, DbConnectionInfo connection)
+    // pgAdmin reads its server list when it starts, so the list is brought up to date before the window opens.
+    private async Task<LaunchResult> OpenInPgAdminAsync(string executable, DbConnectionInfo connection, CancellationToken cancellationToken)
     {
-        var added = TryAddServerToPgAdmin(executable, connection);
-        _processes.Start(executable, []);
-        return added
-            ? new LaunchResult(true, $"pgAdmin is opening with {connection.Name} under \"DB Connect Hub\". It asks for the password once: use Copy here.")
-            : new LaunchResult(true, "pgAdmin is opening, but the server couldn't be added for you. Use the details here to add it.");
-    }
+        var outcome = await _pgAdminServers.AddIfMissingAsync(executable, connection, cancellationToken).ConfigureAwait(false);
+        var started = await StartAsync(executable, [], cancellationToken).ConfigureAwait(false);
 
-    // pgAdmin's own setup script imports a servers.json into its desktop database.
-    private bool TryAddServerToPgAdmin(string executable, DbConnectionInfo connection)
-    {
-        var installFolder = Directory.GetParent(Path.GetDirectoryName(executable)!)?.FullName;
-        if (installFolder is null) return false;
-        var python = Path.Combine(installFolder, "python", "python.exe");
-        var setupScript = Path.Combine(installFolder, "web", "setup.py");
-        if (!File.Exists(python) || !File.Exists(setupScript)) return false;
-
-        var serversFile = Path.Combine(Path.GetTempPath(), $"dbconnecthub-{Guid.NewGuid():N}.json");
-        try
+        var server = $"\"{PgAdminServers.GroupName}\" › {connection.Name}";
+        var detail = outcome switch
         {
-            File.WriteAllText(serversFile, PgAdminServersJson(connection));
-            var arguments = new List<string> { setupScript, "load-servers", serversFile, "--user", PgAdminDesktopUser };
-            if (File.Exists(PgAdminDesktopDatabase)) arguments.AddRange(["--sqlite-path", PgAdminDesktopDatabase]);
-            var exitCode = _processes.Run(python, arguments, PgAdminImportTimeout);
-            if (exitCode != 0) exitCode = _processes.Run(python, [setupScript, "--load-servers", serversFile], PgAdminImportTimeout); // pgAdmin 6
-            return exitCode == 0;
-        }
-        finally
-        {
-            File.Delete(serversFile);
-        }
+            PgAdminServerOutcome.Added => $"{server} was added, showing only {connection.Database}. Click it there to connect.",
+            PgAdminServerOutcome.AlreadyThere => $"{server} was already there. Click it to connect to {connection.Database}.",
+            PgAdminServerOutcome.OutdatedEntry =>
+                $"pgAdmin has an older entry for {connection.Database} under \"{PgAdminServers.GroupName}\". "
+                + "Delete it in pgAdmin, then click Open in pgAdmin again.",
+            _ => "The server couldn't be added for you. Use the details here to add it.",
+        };
+        // A pgAdmin that was already running read its server list before the new server existed.
+        var isRefreshNeeded = outcome == PgAdminServerOutcome.Added && started == StartOutcome.HandedOff;
+        return Opened(DbTool.PgAdmin, started, isRefreshNeeded ? $"{detail} Right-click Servers in pgAdmin and choose Refresh to see it." : detail);
     }
 
-    private LaunchResult StartOnly(string executable, string message)
+    private async Task<LaunchResult> OpenInDbVisualizerAsync(string executable, CancellationToken cancellationToken)
     {
-        _processes.Start(executable, []);
-        return new LaunchResult(true, message);
+        var started = await StartAsync(executable, [], cancellationToken).ConfigureAwait(false);
+        return Opened(DbTool.DbVisualizer, started, "The connection URL is on your clipboard: choose Create Connection and paste it.");
+    }
+
+    private Task<StartOutcome> StartAsync(string executable, IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
+        _processes.StartAsync(new ProcessCommand(executable, arguments), WindowTimeout, cancellationToken);
+
+    private static LaunchResult Opened(DbTool tool, StartOutcome started, string detail)
+    {
+        var name = DisplayName(tool);
+        var opening = started switch
+        {
+            StartOutcome.WindowShown => $"{name} is open.",
+            StartOutcome.HandedOff => $"{name} was already open, so the request went to that window.",
+            _ => $"{name} is still starting; its window will appear shortly.",
+        };
+        return new LaunchResult(true, $"{opening} {detail}");
     }
 }

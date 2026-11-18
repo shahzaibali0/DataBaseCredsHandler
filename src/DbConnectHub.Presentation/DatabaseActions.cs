@@ -11,7 +11,10 @@ public enum DatabaseTool
 }
 
 /// <summary>What a client needs to connect. The password is read just before launching and not kept.</summary>
-public sealed record DatabaseLaunchRequest(string Name, string Host, int Port, string Database, string Username, string? Password);
+public sealed record DatabaseLaunchRequest(string Name, string Host, int Port, string Database, string Username, string? Password)
+{
+    public override string ToString() => $"{Username}@{Host}:{Port}/{Database}"; // never the password
+}
 
 public sealed record ToolLaunch(bool Success, string Message);
 
@@ -20,7 +23,7 @@ public interface IDatabaseTools
 {
     bool IsInstalled(DatabaseTool tool);
 
-    ToolLaunch Open(DatabaseTool tool, DatabaseLaunchRequest request);
+    Task<ToolLaunch> OpenAsync(DatabaseTool tool, DatabaseLaunchRequest request);
 }
 
 /// <summary>The clipboard. A secret is kept out of clipboard history and cleared again after a short while.</summary>
@@ -78,13 +81,24 @@ public sealed class DatabaseActions
         Notice?.Invoke($"{label} copied.", false);
     }
 
-    public void Open(DatabaseTool tool, ConnectionRowViewModel database)
+    /// <summary>What the screen says while a client is being opened; pgAdmin first updates its server list.</summary>
+    public static string OpeningText(DatabaseTool tool) => tool switch
     {
-        var password = database.HasPassword ? _credentials.Read(database.Id) : null;
-        var request = new DatabaseLaunchRequest(
-            $"{database.ProjectName} · {database.Database}", database.Host, database.Port, database.Database, database.Username, password);
+        DatabaseTool.DBeaver => "Starting DBeaver and connecting…",
+        DatabaseTool.PgAdmin => "Adding the server to pgAdmin, then starting it. This can take 20 seconds…",
+        _ => "Starting DbVisualizer…",
+    };
 
-        var launch = _tools.Open(tool, request);
+    public async Task OpenAsync(DatabaseTool tool, ConnectionRowViewModel database)
+    {
+        // Only DBeaver takes the password here. pgAdmin fetches it later through its password command, and
+        // DbVisualizer gets a URL, so it isn't read for them.
+        var isPasswordNeeded = tool == DatabaseTool.DBeaver && database.HasPassword;
+        var password = isPasswordNeeded ? _credentials.Read(database.Id) : null;
+        var request = new DatabaseLaunchRequest(
+            $"{database.WorkspaceName} · {database.Database}", database.Host, database.Port, database.Database, database.Username, password);
+
+        var launch = await _tools.OpenAsync(tool, request);
         if (launch.Success && tool == DatabaseTool.DbVisualizer) _clipboard.CopyText(database.JdbcUrl, isSecret: false);
         Notice?.Invoke(launch.Message, !launch.Success);
     }

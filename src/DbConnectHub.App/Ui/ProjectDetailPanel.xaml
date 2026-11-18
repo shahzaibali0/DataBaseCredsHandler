@@ -154,6 +154,11 @@
                                                 <Button Command="{x:Bind OpenInPgAdminCommand}" Content="Open in pgAdmin" />
                                                 <Button Command="{x:Bind OpenInDbVisualizerCommand}" Content="Open in DbVisualizer" />
                                             </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Spacing="10" Visibility="{x:Bind IsOpening, Mode=OneWay}">
+                                                <ProgressRing IsActive="{x:Bind IsOpening, Mode=OneWay}" Width="18" Height="18" />
+                                                <TextBlock Text="{x:Bind OpeningText, Mode=OneWay}" VerticalAlignment="Center"
+                                                           Style="{StaticResource FieldLabelStyle}" />
+                                            </StackPanel>
                                             <StackPanel Orientation="Horizontal" Spacing="12">
                                                 <HyperlinkButton Command="{x:Bind CopyConnectionUrlCommand}" Padding="0"
                                                                  ToolTipService.ToolTip="postgresql://… without the password">

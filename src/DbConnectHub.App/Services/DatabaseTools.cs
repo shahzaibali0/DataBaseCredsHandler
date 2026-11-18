@@ -6,17 +6,18 @@ namespace DbConnectHub.App.Services;
 /// <summary>Connects the screen's "Open in…" buttons to the Integrations launcher.</summary>
 public sealed class DatabaseTools : IDatabaseTools
 {
-    private readonly DbToolLauncher _launcher = new(new DbToolLocator(DbToolLocator.DefaultInstallRoots()), new ProcessRunner());
+    // pgAdmin runs this exe (Environment.ProcessPath) to get a password when the user connects to a server.
+    private readonly DbToolLauncher _launcher =
+        new(new DbToolLocator(DbToolLocator.DefaultInstallRoots()), new ProcessRunner(), Environment.ProcessPath);
 
     public bool IsInstalled(DatabaseTool tool) => _launcher.IsInstalled(ToDbTool(tool));
 
-    public ToolLaunch Open(DatabaseTool tool, DatabaseLaunchRequest request)
+    public async Task<ToolLaunch> OpenAsync(DatabaseTool tool, DatabaseLaunchRequest request)
     {
         try
         {
-            var result = _launcher.Open(
-                ToDbTool(tool),
-                new DbConnectionInfo(request.Name, request.Host, request.Port, request.Database, request.Username, request.Password));
+            var connection = new DbConnectionInfo(request.Name, request.Host, request.Port, request.Database, request.Username, request.Password);
+            var result = await _launcher.OpenAsync(ToDbTool(tool), connection, CancellationToken.None);
             return new ToolLaunch(result.Success, result.Message);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)

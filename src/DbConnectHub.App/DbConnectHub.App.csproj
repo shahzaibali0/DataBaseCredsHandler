@@ -23,6 +23,9 @@
 
     <!-- Only the .NET 10 runtime is installed on the dev machine; let the net8 app roll forward onto it. -->
     <RollForward>Major</RollForward>
+
+    <!-- Program.cs has its own Main, so pgAdmin's password command is answered before WinUI starts. -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

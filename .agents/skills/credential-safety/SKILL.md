@@ -18,7 +18,8 @@ The one rule: **a password is stored only in Windows Credential Manager, and is 
 | `ConnectionRowViewModel.Password` | Yes, while saved rows are loaded | The owner explicitly requires the full password in the expanded Database file. Never include it in search, tooltips, logs or serialization. |
 | DBeaver's command line | Yes, unavoidable | Visible to other processes of the same user while DBeaver starts. Accepted trade-off; documented in [integrations.md](../db-client-integrations/SKILL.md). |
 | `connections.json`, `settings.json` | **Never** | |
-| pgAdmin `servers.json` | **Never** | pgAdmin prompts for it. |
+| pgAdmin `servers.json` | **Never** | It holds a `PasswordExecCommand` instead: `"DbConnectHub.exe" --pgadmin-password <hex login key>`. |
+| Standard output of `DbConnectHub.exe --pgadmin-password` | Yes, transient | `PgAdminPasswordCommand` reads it from Credential Manager and writes it to the pipe pgAdmin reads, then exits. Only the quoted exe path and a hex key go into that shell command line. It answers only for one unambiguous password per login, and only for printable ASCII; the output bytes are cleared after writing. Its error messages (stderr) name the login, never the password. Any program running as the same user could ask the same way, but it could already read Credential Manager directly. |
 | Logs, `Debug`, `Console`, exception messages, `ToString()` | **Never** | `DiscoveredConnection.ToString()` deliberately omits it. |
 | The Database file's password binding | Yes | This is the one deliberate plaintext UI binding. |
 | Other list bindings, tooltips, the search index | **Never** | Search covers project, host, database, user only. |

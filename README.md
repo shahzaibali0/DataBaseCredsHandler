@@ -57,7 +57,7 @@ DB Connect Hub finds all of it for you, once, and keeps it one click away.
 | 🟢 **Live status** | A green dot shows which dev servers and local databases are running right now. |
 | 🔌 **Ports** | Every app's local address (`http://localhost:3001`) with an **Open** button, read from its dev script, `.env` or `launchSettings.json`. |
 | 🐘 **Database connections** | Host, port, database, user and password (masked, with 👁 to show and a Copy button). |
-| 🚀 **Open in your DB tool** | **DBeaver** opens already connected, **pgAdmin** gets the server added for you, **DbVisualizer** opens with the URL copied. Buttons light up only for tools you have installed. |
+| 🚀 **Open in your DB tool** | **DBeaver** opens already connected, **pgAdmin** gets a "DB Connect Hub" group showing just that project's database, signed in from Credential Manager, **DbVisualizer** opens with the URL copied. Buttons light up only for tools you have installed. |
 | 🧱 **Stack & key packages** | Next.js 16 · React 19 · TypeScript, or ASP.NET Core · .NET 8, plus the important packages by purpose (database, auth, payments, UI…). |
 | 🔒 **Stays on your PC** | Passwords live in Windows Credential Manager, never in a file. No account, no server, no telemetry. |
 | 🪟 **Always there** | Lives in the system tray, starts with Windows, rescans quietly in the background. |

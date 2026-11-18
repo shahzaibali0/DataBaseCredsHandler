@@ -214,7 +214,9 @@ public sealed partial class MainViewModel : ObservableObject
         var inventory = _services.Stores.Inventory.Load();
         _apps = inventory.Apps;
         _databases = _services.Stores.Connections.GetAll()
-            .Select(saved => ConnectionRowViewModel.From(saved, _services.Databases)).ToList();
+            .Select(saved => ConnectionRowViewModel.From(
+                saved, _services.Databases, WorkspaceBuilder.ProjectNameFor(saved.ProjectPath, _apps)))
+            .ToList();
         HasData = _apps.Count + _databases.Count > 0;
         ApplyFilter();
         CountEverything();

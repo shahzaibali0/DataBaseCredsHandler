@@ -37,6 +37,9 @@ public sealed partial class ConnectionRowViewModel : ObservableObject
 
     public string ProjectName { get; }
 
+    /// <summary>The project on the card (the repository), not the app folder; "ShopRepo" rather than "backend".</summary>
+    public string WorkspaceName { get; private init; } = "";
+
     /// <summary>The folder the config file belongs to; usually the app folder.</summary>
     public string ProjectPath { get; }
 
@@ -91,13 +94,22 @@ public sealed partial class ConnectionRowViewModel : ObservableObject
 
     public string RevealLabel => IsRevealed ? "Hide password" : "Show password";
 
+    /// <summary>What is happening while a client is being opened for this database; empty otherwise.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsOpening))]
+    private string _openingText = "";
+
+    public bool IsOpening => OpeningText.Length > 0;
+
     public bool CanOpenInDbeaver => _actions.IsInstalled(DatabaseTool.DBeaver);
 
     public bool CanOpenInPgAdmin => _actions.IsInstalled(DatabaseTool.PgAdmin);
 
     public bool CanOpenInDbVisualizer => _actions.IsInstalled(DatabaseTool.DbVisualizer);
 
-    public static ConnectionRowViewModel From(SavedConnection connection, DatabaseActions actions) => new(connection, actions);
+    /// <param name="workspaceName">The project the card shows (the repository), used to name it in database clients.</param>
+    public static ConnectionRowViewModel From(SavedConnection connection, DatabaseActions actions, string workspaceName) =>
+        new(connection, actions) { WorkspaceName = workspaceName };
 
     /// <summary>Masks the password again and forgets it.</summary>
     public void Hide()
@@ -136,12 +148,27 @@ public sealed partial class ConnectionRowViewModel : ObservableObject
     [RelayCommand]
     private void CopyConnectionUrl() => _actions.CopyText("Connection URL", ConnectionUrl);
 
+    // Async commands: the button stays disabled while its client is being prepared, so a second click can't add twice.
     [RelayCommand(CanExecute = nameof(CanOpenInDbeaver))]
-    private void OpenInDbeaver() => _actions.Open(DatabaseTool.DBeaver, this);
+    private Task OpenInDbeaverAsync() => OpenInToolAsync(DatabaseTool.DBeaver);
 
     [RelayCommand(CanExecute = nameof(CanOpenInPgAdmin))]
-    private void OpenInPgAdmin() => _actions.Open(DatabaseTool.PgAdmin, this);
+    private Task OpenInPgAdminAsync() => OpenInToolAsync(DatabaseTool.PgAdmin);
 
     [RelayCommand(CanExecute = nameof(CanOpenInDbVisualizer))]
-    private void OpenInDbVisualizer() => _actions.Open(DatabaseTool.DbVisualizer, this);
+    private Task OpenInDbVisualizerAsync() => OpenInToolAsync(DatabaseTool.DbVisualizer);
+
+    // The progress line stays until the client's window is up (or the launch gave up), whatever happened.
+    private async Task OpenInToolAsync(DatabaseTool tool)
+    {
+        OpeningText = DatabaseActions.OpeningText(tool);
+        try
+        {
+            await _actions.OpenAsync(tool, this);
+        }
+        finally
+        {
+            OpeningText = "";
+        }
+    }
 }
