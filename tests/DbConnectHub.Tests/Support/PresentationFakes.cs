@@ -1,4 +1,5 @@
 using DbConnectHub.Presentation;
+using DbConnectHub.Scanner;
 
 namespace DbConnectHub.Tests.Support;
 
@@ -24,3 +25,13 @@ public sealed class FakeStartup : IStartupRegistration
     public void SetEnabled(bool isEnabled) => IsEnabled = isEnabled;
 }
 
+public sealed class FakeServerRunner : IServerRunner
+{
+    public List<ServerCommand> Started { get; } = [];
+
+    public ToolLaunch Start(ServerCommand command)
+    {
+        Started.Add(command);
+        return new ToolLaunch(true, "started");
+    }
+}

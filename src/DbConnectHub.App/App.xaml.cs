@@ -10,7 +10,8 @@ namespace DbConnectHub.App;
 
 /// <summary>
 /// Composition root, and the app's life in the background: one instance per user, a tray icon, closing to the
-/// tray, starting hidden when Windows starts it (<c>--background</c>), and a quiet rescan on startup.
+/// tray, starting hidden when Windows starts it (<c>--background</c>), and a quiet rescan on startup. The window
+/// is built the first time the user opens it, so a start in the background never pays for it.
 /// </summary>
 public partial class App : Application
 {
@@ -33,15 +34,22 @@ public partial class App : Application
         }
 
         _viewModel = CreateViewModel();
-        _mainWindow = new MainWindow(_viewModel, ExitApp);
         _trayIcon = new TrayIcon(new TrayActions(ShowMainWindow, () => _viewModel.ScanCommand.Execute(null), ExitApp));
 
         var dispatcher = DispatcherQueue.GetForCurrentThread();
         _singleInstance.ListenForShowRequests(() => dispatcher.TryEnqueue(ShowMainWindow));
 
-        if (!Environment.GetCommandLineArgs().Contains(StartupRegistration.BackgroundArgument)) ShowMainWindow();
-        if (_viewModel.ShouldScanOnStartup) _viewModel.ScanCommand.Execute(null);
+        var isBackgroundStart = Environment.GetCommandLineArgs().Contains(StartupRegistration.BackgroundArgument);
+        if (!isBackgroundStart) ShowMainWindow();
+        _ = ScanOnStartupAsync(_viewModel, isBackgroundStart);
         _ = _viewModel.KeepStatusFreshAsync(_stopping.Token);
+    }
+
+    // Started by Windows into the tray: no window ever showed, so nothing else gives the startup scan's memory back.
+    private async Task ScanOnStartupAsync(MainViewModel viewModel, bool isBackgroundStart)
+    {
+        if (viewModel.ShouldScanOnStartup) await viewModel.ScanCommand.ExecuteAsync(null);
+        if (isBackgroundStart && _mainWindow is null) TrayMemory.Release();
     }
 
     private MainViewModel CreateViewModel()
@@ -52,7 +60,7 @@ public partial class App : Application
             new JsonConnectionRepository(), CredentialStoreFactory.Create(), new JsonSettingsStore(), new JsonInventoryRepository());
         var services = new AppServices(
             new ScanWorkflow(stores, LocalDrives.ListFixedDriveRoots), stores, new DesktopShell(windowHandle), new StartupRegistration(),
-            new DatabaseActions(stores.Credentials, new DatabaseTools(), new SecretClipboard()), new LocalPorts());
+            new DatabaseActions(stores.Credentials, new DatabaseTools(), new SecretClipboard()), new LocalPorts(), new ServerRunner());
 
         var viewModel = new MainViewModel(services);
         viewModel.Load();
@@ -76,7 +84,12 @@ public partial class App : Application
         }
     }
 
-    private void ShowMainWindow() => _mainWindow?.ShowAndFocus();
+    private void ShowMainWindow()
+    {
+        if (_viewModel is null) return;
+        _mainWindow ??= new MainWindow(_viewModel, ExitApp);
+        _mainWindow.ShowAndFocus();
+    }
 
     private void ExitApp()
     {

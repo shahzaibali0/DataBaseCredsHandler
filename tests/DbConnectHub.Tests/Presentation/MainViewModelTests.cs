@@ -15,6 +15,7 @@ public sealed class MainViewModelTests : IDisposable
     private readonly FakeDatabaseTools _tools = new();
     private readonly FakeClipboard _clipboard = new();
     private readonly FakePorts _ports = new();
+    private readonly FakeServerRunner _servers = new();
 
     public void Dispose()
     {
@@ -233,6 +234,62 @@ public sealed class MainViewModelTests : IDisposable
         Assert.False(viewModel.ScanCommand.CanExecute(null));
     }
 
+    [Fact]
+    public async Task RunServer_StartsTheAppsDevScriptInItsFolder()
+    {
+        WriteRepository();
+        var viewModel = await ScannedViewModel();
+        var backend = viewModel.Workspaces[0].Servers[0];
+
+        viewModel.RunServerCommand.Execute(backend);
+
+        var started = Assert.Single(_servers.Started);
+        Assert.Equal(("npm run dev", _projects.Combine("ShopRepo", "shop_backend")), (started.Text, started.Folder));
+        Assert.Equal("started", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task RunServer_AlreadyRunning_StartsNothingAndSaysSo()
+    {
+        WriteRepository();
+        var viewModel = await ScannedViewModel();
+        _ports.Listening.Add(3001);
+        await viewModel.RefreshStatusAsync(CancellationToken.None);
+
+        viewModel.RunServerCommand.Execute(viewModel.Workspaces[0].Servers[0]);
+
+        Assert.Empty(_servers.Started);
+        Assert.Contains("already running at http://localhost:3001", viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task ChangePort_ChangesTheScriptAndShowsTheNewAddress()
+    {
+        WriteRepository();
+        var viewModel = await ScannedViewModel();
+
+        await viewModel.ChangePortAsync(viewModel.Workspaces[0].Servers[0], 4100);
+
+        Assert.Contains("next dev --port 4100", File.ReadAllText(_projects.Combine("ShopRepo", "shop_backend", "package.json")));
+        Assert.Equal(":4100", viewModel.Workspaces[0].Servers[0].PortLabel);
+        Assert.False(viewModel.HasError);
+    }
+
+    [Fact]
+    public async Task ChangePort_PortInUseByAnotherProgram_ChangesNothing()
+    {
+        WriteRepository();
+        var viewModel = await ScannedViewModel();
+        var packageJson = _projects.Combine("ShopRepo", "shop_backend", "package.json");
+        var before = File.ReadAllText(packageJson);
+        _ports.Listening.Add(4100);
+
+        await viewModel.ChangePortAsync(viewModel.Workspaces[0].Servers[0], 4100);
+
+        Assert.Equal(before, File.ReadAllText(packageJson));
+        Assert.Contains("in use", viewModel.ErrorMessage);
+    }
+
     private async Task<MainViewModel> ScannedViewModel()
     {
         var viewModel = CreateViewModel();
@@ -261,7 +318,7 @@ public sealed class MainViewModelTests : IDisposable
             new JsonInventoryRepository(_appData.Combine("inventory.json")));
         var workflow = new ScanWorkflow(stores, defaultRoots ?? (() => [_projects.Path]));
         var databases = new DatabaseActions(stores.Credentials, _tools, _clipboard);
-        return new MainViewModel(new AppServices(workflow, stores, _shell, _startup, databases, _ports));
+        return new MainViewModel(new AppServices(workflow, stores, _shell, _startup, databases, _ports, _servers));
     }
 
     private sealed class FakeDatabaseTools : IDatabaseTools

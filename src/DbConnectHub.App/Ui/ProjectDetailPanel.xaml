@@ -72,13 +72,25 @@
                                                 <Run Text="{x:Bind Framework}" /><Run Text="  ·  " /><Run Text="{x:Bind LocalUrlSource}" />
                                             </TextBlock>
                                         </StackPanel>
-                                        <Button Grid.Column="2" VerticalAlignment="Center" Tag="{x:Bind LocalUrl}" Click="OnOpenUrlClick"
-                                                AutomationProperties.Name="Open in browser">
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <FontIcon Glyph="&#xE8A7;" FontSize="13" />
-                                                <TextBlock Text="Open" />
-                                            </StackPanel>
-                                        </Button>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <Button Tag="{x:Bind}" Click="OnRunServerClick" AutomationProperties.Name="Run server"
+                                                    ToolTipService.ToolTip="Start the dev server in its own window">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE768;" FontSize="13" />
+                                                    <TextBlock Text="Run" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Tag="{x:Bind}" Click="OnChangePortClick" AutomationProperties.Name="Change port"
+                                                    ToolTipService.ToolTip="Change the port this server runs on">
+                                                <FontIcon Glyph="&#xE70F;" FontSize="13" />
+                                            </Button>
+                                            <Button Tag="{x:Bind LocalUrl}" Click="OnOpenUrlClick" AutomationProperties.Name="Open in browser">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <FontIcon Glyph="&#xE8A7;" FontSize="13" />
+                                                    <TextBlock Text="Open" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
                                     </Grid>
                                 </DataTemplate>
                             </ItemsRepeater.ItemTemplate>

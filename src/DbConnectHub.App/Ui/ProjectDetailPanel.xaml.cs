@@ -29,9 +29,29 @@ public sealed partial class ProjectDetailPanel : UserControl
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => ViewModel?.CloseProjectCommand.Execute(null);
 
-    // A port row's template can't reach the viewmodel through x:Bind, so its button routes here.
+    // A port row's template can't reach the viewmodel through x:Bind, so its buttons route here.
     private void OnOpenUrlClick(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: string url }) ViewModel?.OpenLocalUrlCommand.Execute(url);
+    }
+
+    private void OnRunServerClick(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is Button { Tag: AppGroupViewModel app }) ViewModel?.RunServerCommand.Execute(app);
+    }
+
+    // An event handler is an entry point: ChangePortAsync reports its own failures, and only one dialog can be open.
+    private async void OnChangePortClick(object sender, RoutedEventArgs eventArgs)
+    {
+        if (sender is not Button { Tag: AppGroupViewModel app } || ViewModel is null) return;
+        try
+        {
+            var port = await PortDialog.AskAsync(XamlRoot, app);
+            if (port is not null) await ViewModel.ChangePortAsync(app, port.Value);
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // Another dialog was already open; the click is ignored and the user can try again.
+        }
     }
 }

@@ -10,7 +10,7 @@ namespace DbConnectHub.App;
 
 /// <summary>
 /// The window: title bar, sidebar navigation and the page frame. Closing it hides it to the tray (unless the
-/// user turned that off); every shown password is hidden again first.
+/// user turned that off); every shown password is hidden again first, and the window's memory goes back to Windows.
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -78,6 +78,9 @@ public sealed partial class MainWindow : Window
         args.Cancel = true;
         _viewModel.HideAllPasswords();
         sender.Hide();
+        // Hidden, not closed: WinUI doesn't free all of a closed window, so building a new one on every open would
+        // grow the app each time. Once the hide has been drawn, the memory the screen let go of goes back to Windows.
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, Services.TrayMemory.Release);
     }
 
     private void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)

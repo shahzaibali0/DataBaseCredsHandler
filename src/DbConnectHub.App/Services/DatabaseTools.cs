@@ -6,9 +6,7 @@ namespace DbConnectHub.App.Services;
 /// <summary>Connects the screen's "Open in…" buttons to the Integrations launcher.</summary>
 public sealed class DatabaseTools : IDatabaseTools
 {
-    // pgAdmin runs this exe (Environment.ProcessPath) to get a password when the user connects to a server.
-    private readonly DbToolLauncher _launcher =
-        new(new DbToolLocator(DbToolLocator.DefaultInstallRoots()), new ProcessRunner(), Environment.ProcessPath);
+    private readonly DbToolLauncher _launcher = CreateLauncher();
 
     public bool IsInstalled(DatabaseTool tool) => _launcher.IsInstalled(ToDbTool(tool));
 
@@ -32,4 +30,12 @@ public sealed class DatabaseTools : IDatabaseTools
         DatabaseTool.PgAdmin => DbTool.PgAdmin,
         _ => DbTool.DbVisualizer,
     };
+
+    // pgAdmin runs this exe (Environment.ProcessPath) to get a password when the user connects to a server.
+    private static DbToolLauncher CreateLauncher()
+    {
+        var processes = new ProcessRunner();
+        var pgAdminServers = new PgAdminServers(processes, Environment.ProcessPath, PgAdminServers.DesktopDatabase);
+        return new DbToolLauncher(new DbToolLocator(DbToolLocator.DefaultInstallRoots()), processes, pgAdminServers);
+    }
 }

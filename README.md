@@ -89,6 +89,7 @@ Check it yourself:
 - ✅ An automated test ([`PrivacyTests.cs`](tests/DbConnectHub.Tests/PrivacyTests.cs)) fails the build if the code that scans, stores or shows your data ever uses a networking library.
 - ✅ The only connections the app makes are to **your own PC** (`localhost`) to see whether a server is running, and to a database **you** open in a DB tool. A remote server is never contacted for status.
 - ✅ It's open source: search the code for `HttpClient` or `Socket`.
+- ✅ **Run** starts your own project's dev server in its own window. Whatever that server or its tools do on the network (a package restore, a framework's telemetry) is your project's doing, not DB Connect Hub's. **Change port** edits only the port value in your project's file, after you confirm it.
 
 <details>
 <summary>🧹 Uninstall or start over</summary>

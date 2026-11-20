@@ -11,6 +11,12 @@ public interface IStartupRegistration
     void SetEnabled(bool isEnabled);
 }
 
+/// <summary>Starts a dev server in its own console window (implemented with DbConnectHub.Integrations in the app).</summary>
+public interface IServerRunner
+{
+    ToolLaunch Start(ServerCommand command);
+}
+
 /// <summary>Everything the main viewmodel works with, created once in the composition root.</summary>
 public sealed record AppServices(
     ScanWorkflow ScanWorkflow,
@@ -18,4 +24,5 @@ public sealed record AppServices(
     IDesktopShell Shell,
     IStartupRegistration Startup,
     DatabaseActions Databases,
-    ILocalPortProbe Ports);
+    ILocalPortProbe Ports,
+    IServerRunner Servers);

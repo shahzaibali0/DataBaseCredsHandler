@@ -35,18 +35,24 @@ public sealed class PgAdminServers
     // setup.py prints its errors and still exits with 0, so success is read from this line instead.
     private static readonly Regex AddedServersLine = new(@"Added \d+ Server Group\(s\) and (?<servers>\d+) Server\(s\)");
 
-    // Where the pgAdmin desktop app keeps its servers, so the import lands in the database the window reads.
-    private static readonly string DesktopDatabase =
+    /// <summary>Where the pgAdmin desktop app keeps its servers, so the import lands in the database the window reads.</summary>
+    public static readonly string DesktopDatabase =
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "pgAdmin", "pgadmin4.db");
 
     private readonly IProcessRunner _processes;
     private readonly string? _appPath;
+    private readonly string _desktopDatabase;
+    private readonly SemaphoreSlim _oneAtATime = new(1, 1);
+    private ServerListing? _lastListing;
 
+    /// <param name="processes">Runs pgAdmin's setup.py.</param>
     /// <param name="appPath">This app's exe, for pgAdmin's password command; null leaves the password to pgAdmin.</param>
-    public PgAdminServers(IProcessRunner processes, string? appPath)
+    /// <param name="desktopDatabase">pgAdmin's pgadmin4.db, normally <see cref="DesktopDatabase"/>.</param>
+    public PgAdminServers(IProcessRunner processes, string? appPath, string desktopDatabase)
     {
         _processes = processes;
         _appPath = appPath;
+        _desktopDatabase = desktopDatabase;
     }
 
     /// <summary>
@@ -91,7 +97,22 @@ public sealed class PgAdminServers
         return JsonSerializer.Serialize(new { Servers = new Dictionary<string, object> { ["1"] = server } });
     }
 
+    // One at a time: two opens of the same database running side by side would both see it missing and add it twice.
     public async Task<PgAdminServerOutcome> AddIfMissingAsync(
+        string pgAdminExecutable, DbConnectionInfo connection, CancellationToken cancellationToken)
+    {
+        await _oneAtATime.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await AddIfMissingAloneAsync(pgAdminExecutable, connection, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _oneAtATime.Release();
+        }
+    }
+
+    private async Task<PgAdminServerOutcome> AddIfMissingAloneAsync(
         string pgAdminExecutable, DbConnectionInfo connection, CancellationToken cancellationToken)
     {
         var setup = FindSetup(pgAdminExecutable);
@@ -102,15 +123,21 @@ public sealed class PgAdminServers
         var sameEntry = existing.FirstOrDefault(server => IsSameEntry(server, connection));
         if (sameEntry is not null) return CompareEntry(sameEntry, connection);
 
-        return await ImportAsync(setup, connection, cancellationToken).ConfigureAwait(false)
-            ? PgAdminServerOutcome.Added
-            : PgAdminServerOutcome.CouldNotAdd;
+        // Forgotten before the import, so an import that fails or is cancelled halfway is never covered by the old list.
+        _lastListing = null;
+        var isAdded = await ImportAsync(setup, connection, cancellationToken).ConfigureAwait(false);
+        return isAdded ? PgAdminServerOutcome.Added : PgAdminServerOutcome.CouldNotAdd;
     }
 
     private sealed record SetupScript(string Python, string Script, string RuntimeFolder);
 
     private sealed record ListedServer(
         string Name, string Group, string Host, int Port, string Username, string Database, string PasswordCommand);
+
+    /// <summary>pgadmin4.db's size and write times; any change to pgAdmin's servers changes at least one.</summary>
+    private sealed record DatabaseStamp(long Length, DateTime WrittenAtUtc, DateTime JournalWrittenAtUtc);
+
+    private sealed record ServerListing(DatabaseStamp Stamp, IReadOnlyList<ListedServer> Servers);
 
     // An entry with another name or password command comes from an older version (or the app moved). setup.py can't
     // edit it, so the user deletes it once rather than getting a second entry for the same database.
@@ -132,7 +159,29 @@ public sealed class PgAdminServers
         return File.Exists(setup.Python) && File.Exists(setup.Script) ? setup : null;
     }
 
+    // dump-servers takes 10 to 45 seconds, so its answer is reused while pgadmin4.db is unchanged. The stamp is taken
+    // before the dump: a change made during it gives a newer stamp next time, so a stale list is never kept.
     private async Task<IReadOnlyList<ListedServer>?> ListServersAsync(SetupScript setup, CancellationToken cancellationToken)
+    {
+        var stamp = StampOfDesktopDatabase();
+        var lastListing = _lastListing;
+        if (stamp is not null && lastListing?.Stamp == stamp) return lastListing.Servers;
+
+        var servers = await DumpServersAsync(setup, cancellationToken).ConfigureAwait(false);
+        _lastListing = stamp is null || servers is null ? null : new ServerListing(stamp, servers);
+        return servers;
+    }
+
+    // Null when there is no pgadmin4.db yet; then nothing is reused. SQLite may keep recent changes in a -wal file.
+    private DatabaseStamp? StampOfDesktopDatabase()
+    {
+        var database = new FileInfo(_desktopDatabase);
+        if (!database.Exists) return null;
+        var journal = new FileInfo(_desktopDatabase + "-wal");
+        return new DatabaseStamp(database.Length, database.LastWriteTimeUtc, journal.Exists ? journal.LastWriteTimeUtc : default);
+    }
+
+    private async Task<IReadOnlyList<ListedServer>?> DumpServersAsync(SetupScript setup, CancellationToken cancellationToken)
     {
         var dumpFile = TempFile();
         try
@@ -168,7 +217,7 @@ public sealed class PgAdminServers
         var arguments = new List<string> { setup.Script };
         arguments.AddRange(command);
         arguments.AddRange(["--user", DesktopUser]);
-        if (File.Exists(DesktopDatabase)) arguments.AddRange(["--sqlite-path", DesktopDatabase]);
+        if (File.Exists(_desktopDatabase)) arguments.AddRange(["--sqlite-path", _desktopDatabase]);
         return _processes.RunAsync(new ProcessCommand(setup.Python, arguments, setup.RuntimeFolder), SetupTimeout, cancellationToken);
     }
 

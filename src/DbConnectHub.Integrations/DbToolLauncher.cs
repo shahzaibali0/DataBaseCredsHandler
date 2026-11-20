@@ -15,12 +15,12 @@ public sealed class DbToolLauncher
     private readonly IProcessRunner _processes;
     private readonly PgAdminServers _pgAdminServers;
 
-    /// <param name="appPath">This app's exe, which pgAdmin runs to get a password; null makes pgAdmin ask instead.</param>
-    public DbToolLauncher(DbToolLocator locator, IProcessRunner processes, string? appPath)
+    /// <param name="pgAdminServers">Keeps pgAdmin's server list; it remembers that list between opens.</param>
+    public DbToolLauncher(DbToolLocator locator, IProcessRunner processes, PgAdminServers pgAdminServers)
     {
         _locator = locator;
         _processes = processes;
-        _pgAdminServers = new PgAdminServers(processes, appPath);
+        _pgAdminServers = pgAdminServers;
     }
 
     public bool IsInstalled(DbTool tool) => _locator.Find(tool) is not null;

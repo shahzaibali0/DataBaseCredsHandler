@@ -69,6 +69,9 @@ The settled requirements: a small local tool whose security rules are easy to se
 | Build a connection string | `ConnectionStringBuilder` (to build; today `PostgresUrl.ToUrl`/`ToJdbc`) | App copy commands |
 | Open in DBeaver / export to pgAdmin / test | `DbeaverLauncher`, `PgAdminExporter`, `ConnectionTester` (to build) | App row commands |
 | Show complete database credentials | `ConnectionRowViewModel` reads through `ICredentialStore` | Database file template |
+| Change a dev server's port in its project file | `ServerPorts` in Scanner (shares `AppDetector`'s port rules, so it edits where the scan read) | `MainViewModel.ChangePortAsync`, the port dialog |
+| Work out how a project starts its dev server | `ServerCommands.Find` in Scanner | `MainViewModel.RunServerCommand` |
+| Start a dev server in its own console | `ServerLauncher` in Integrations, behind `IServerRunner` | App `ServerRunner` |
 
 ## Design patterns in use
 

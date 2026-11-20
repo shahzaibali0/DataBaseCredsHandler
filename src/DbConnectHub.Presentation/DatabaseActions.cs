@@ -85,7 +85,7 @@ public sealed class DatabaseActions
     public static string OpeningText(DatabaseTool tool) => tool switch
     {
         DatabaseTool.DBeaver => "Starting DBeaver and connecting…",
-        DatabaseTool.PgAdmin => "Adding the server to pgAdmin, then starting it. This can take 20 seconds…",
+        DatabaseTool.PgAdmin => "Checking pgAdmin's server list, then starting it. The first time this can take up to a minute…",
         _ => "Starting DbVisualizer…",
     };
 

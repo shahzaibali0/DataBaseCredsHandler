@@ -19,6 +19,9 @@ public sealed record AppFacts(string Framework, AppRole RoleFromFramework, strin
 /// </summary>
 public static partial class AppDetector
 {
+    /// <summary>The framework name of a .NET web app.</summary>
+    public const string AspNetCore = "ASP.NET Core";
+
     // Checked in order: the first dependency found names the framework.
     private static readonly (string Package, string Framework, AppRole Role, int DefaultPort)[] JsFrameworks =
     [
@@ -34,10 +37,11 @@ public static partial class AppDetector
         ("hono", "Hono", AppRole.Backend, 3000),
     ];
 
-    private static readonly string[] EnvFilesForPort = [".env.local", ".env.development.local", ".env.development", ".env"];
+    // Shared with ServerPorts, so a port is changed in the same place it was read from.
+    internal static readonly string[] EnvFilesForPort = [".env.local", ".env.development.local", ".env.development", ".env"];
 
     [GeneratedRegex(@"(?:--port[ =]|-p[ =]?|PORT=)(\d{2,5})\b")]
-    private static partial Regex PortInScriptRegex();
+    internal static partial Regex PortInScriptRegex();
 
     [GeneratedRegex(@"https?://[^;\s""]+")]
     private static partial Regex UrlRegex();
@@ -52,7 +56,7 @@ public static partial class AppDetector
     private static partial Regex MajorVersionRegex();
 
     [GeneratedRegex(@"^\s*(?:export\s+)?PORT\s*=\s*[""']?(\d{2,5})[""']?(?:\s+#.*)?\s*$", RegexOptions.IgnoreCase)]
-    private static partial Regex PortAssignmentRegex();
+    internal static partial Regex PortAssignmentRegex();
 
     public static bool IsAppMarker(string fileName) =>
         fileName.Equals("package.json", StringComparison.OrdinalIgnoreCase)
@@ -80,7 +84,8 @@ public static partial class AppDetector
 
         var root = document.RootElement;
         var framework = JsFrameworks.FirstOrDefault(candidate => HasDependency(root, candidate.Package));
-        var devScript = ReadScript(root, "dev") ?? ReadScript(root, "start");
+        var scriptName = ServerScriptName(root);
+        var devScript = scriptName is null ? null : ReadScript(root, scriptName);
         if (framework.Framework is null && devScript is null) return null; // tooling-only package.json
 
         var appFolder = Path.GetDirectoryName(packageJsonPath)!;
@@ -136,8 +141,8 @@ public static partial class AppDetector
         var launchSettings = Path.Combine(Path.GetDirectoryName(csprojPath)!, "Properties", "launchSettings.json");
         var url = ReadLaunchUrl(launchSettings);
         var facts = url is null
-            ? new AppFacts("ASP.NET Core", AppRole.Backend, "http://localhost:5000", "ASP.NET Core default")
-            : new AppFacts("ASP.NET Core", AppRole.Backend, url, "launchSettings.json");
+            ? new AppFacts(AspNetCore, AppRole.Backend, "http://localhost:5000", "ASP.NET Core default")
+            : new AppFacts(AspNetCore, AppRole.Backend, url, "launchSettings.json");
         return facts with
         {
             Stack = DotNetStack(project),
@@ -145,7 +150,7 @@ public static partial class AppDetector
         };
     }
 
-    private static string? ReadLaunchUrl(string launchSettingsPath)
+    internal static string? ReadLaunchUrl(string launchSettingsPath)
     {
         if (!File.Exists(launchSettingsPath)) return null;
         string text;
@@ -207,6 +212,12 @@ public static partial class AppDetector
             root.TryGetProperty(section, out var dependencies)
             && dependencies.ValueKind == JsonValueKind.Object
             && dependencies.TryGetProperty(package, out _));
+
+    /// <summary>"dev", else "start": the script that runs the dev server; null when there is neither.</summary>
+    internal static string? ServerScriptName(JsonElement root) =>
+        new[] { "dev", "start" }.FirstOrDefault(name => ReadScript(root, name) is not null);
+
+    internal static JsonDocument? TryReadPackageJson(string path) => TryReadJson(path);
 
     private static string? ReadScript(JsonElement root, string name) =>
         root.TryGetProperty("scripts", out var scripts)

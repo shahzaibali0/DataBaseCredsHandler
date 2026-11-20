@@ -140,6 +140,72 @@ public sealed class DbToolLauncherTests : IDisposable
     }
 
     [Fact]
+    public async Task Open_PgAdminTwiceWhileItsDatabaseIsUnchanged_ListsItsServersOnlyOnce()
+    {
+        InstallPgAdmin();
+        File.WriteAllText(DesktopDatabasePath, "servers");
+        _processes.ExistingServers = ExistingAppServer(ShopPasswordCommand);
+        var launcher = CreateLauncher();
+
+        await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+        var second = await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+
+        Assert.Equal("dump-servers", Assert.Single(_processes.Ran).Arguments[1]);
+        Assert.Contains("already", second.Message);
+    }
+
+    [Fact]
+    public async Task Open_PgAdminAfterItsDatabaseChanged_ListsItsServersAgain()
+    {
+        InstallPgAdmin();
+        File.WriteAllText(DesktopDatabasePath, "servers");
+        _processes.ExistingServers = ExistingAppServer(ShopPasswordCommand);
+        var launcher = CreateLauncher();
+        await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+
+        // The user deleted the entry in pgAdmin, which rewrites its database.
+        _processes.ExistingServers = """{ "Servers": {} }""";
+        File.WriteAllText(DesktopDatabasePath, "servers, one fewer");
+        var second = await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+
+        Assert.Equal(["dump-servers", "dump-servers", "load-servers"], _processes.Ran.Select(run => run.Arguments[1]));
+        Assert.Contains("added", second.Message);
+    }
+
+    [Fact]
+    public async Task Open_PgAdminAfterAddingAServer_ListsItsServersAgainRatherThanAddingTwice()
+    {
+        InstallPgAdmin();
+        File.WriteAllText(DesktopDatabasePath, "servers");
+        var launcher = CreateLauncher();
+        await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+
+        _processes.ExistingServers = ExistingAppServer(ShopPasswordCommand);
+        var second = await launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+
+        Assert.Equal(["dump-servers", "load-servers", "dump-servers"], _processes.Ran.Select(run => run.Arguments[1]));
+        Assert.Contains("already", second.Message);
+    }
+
+    [Fact]
+    public async Task Open_PgAdminTwiceAtTheSameTime_AddsTheServerOnlyOnce()
+    {
+        InstallPgAdmin();
+        File.WriteAllText(DesktopDatabasePath, "servers");
+        var dumpStarted = new TaskCompletionSource();
+        _processes.DumpStarted = dumpStarted.Task;
+        var launcher = CreateLauncher();
+
+        var first = launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+        var second = launcher.OpenAsync(DbTool.PgAdmin, Shop, CancellationToken.None);
+        dumpStarted.SetResult();
+        var messages = (await Task.WhenAll(first, second)).Select(result => result.Message).ToList();
+
+        Assert.Single(_processes.Ran, run => run.Arguments[1] == "load-servers");
+        Assert.Single(messages, message => message.Contains("already"));
+    }
+
+    [Fact]
     public async Task Open_PgAdminEntryWithAnOldName_AsksToDeleteIt()
     {
         InstallPgAdmin();
@@ -255,7 +321,11 @@ public sealed class DbToolLauncherTests : IDisposable
         return _programs.WriteFile("pgAdmin 4/runtime/pgAdmin4.exe", "");
     }
 
-    private DbToolLauncher CreateLauncher(string appPath = AppPath) => new(new DbToolLocator([_programs.Path]), _processes, appPath);
+    private DbToolLauncher CreateLauncher(string appPath = AppPath) => new(
+        new DbToolLocator([_programs.Path]), _processes, new PgAdminServers(_processes, appPath, DesktopDatabasePath));
+
+    // A made-up pgadmin4.db in the temp folder; it doesn't exist until a test writes it.
+    private string DesktopDatabasePath => System.IO.Path.Combine(_programs.Path, "pgadmin4.db");
 
     private System.Text.Json.JsonElement ImportedServer() =>
         System.Text.Json.JsonDocument.Parse(_processes.ImportedJson).RootElement.GetProperty("Servers").GetProperty("1");
@@ -293,18 +363,24 @@ public sealed class DbToolLauncherTests : IDisposable
             return Task.FromResult(StartOutcome);
         }
 
-        public Task<ProcessRun> RunAsync(ProcessCommand command, TimeSpan timeout, CancellationToken cancellationToken)
+        /// <summary>When set, dump-servers waits for it, so a test can start two opens side by side.</summary>
+        public Task? DumpStarted { get; set; }
+
+        public async Task<ProcessRun> RunAsync(ProcessCommand command, TimeSpan timeout, CancellationToken cancellationToken)
         {
-            Ran.Add((command.Arguments, command.ExtraSearchFolder));
+            lock (Ran) Ran.Add((command.Arguments, command.ExtraSearchFolder)); // two opens may run side by side
             var file = command.Arguments[2];
             if (command.Arguments[1] == "dump-servers")
             {
-                File.WriteAllText(file, ExistingServers);
-                return Task.FromResult(new ProcessRun(0, "Configuration for 1 servers dumped"));
+                var listedServers = ExistingServers; // pgAdmin reads its list when the dump starts
+                if (DumpStarted is not null) await DumpStarted;
+                File.WriteAllText(file, listedServers);
+                return new ProcessRun(0, "Configuration for 1 servers dumped");
             }
 
             ImportedJson = File.ReadAllText(file); // the import file exists while pgAdmin reads it
-            return Task.FromResult(new ProcessRun(0, ImportOutput));
+            ExistingServers = ImportedJson; // like pgAdmin, the next dump lists what was added
+            return new ProcessRun(0, ImportOutput);
         }
     }
 }
